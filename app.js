@@ -52,3 +52,13 @@ particlesJS('particles-js', {
     },
     retina_detect: true,
 });
+
+
+document.getElementById('audioFile').addEventListener('change', function(evt) {
+    var sound = document.getElementById('audioPlayer');
+    sound.src = URL.createObjectURL(this.files[0]);
+    sound.onend = function(e) {
+      URL.revokeObjectURL(this.src);
+    }
+    sound.play();
+});
