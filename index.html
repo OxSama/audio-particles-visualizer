@@ -15,8 +15,12 @@
           <input type="file" id="audioFile" accept="audio/*" class="hidden" />
           Upload Audio
         </label>
-        <audio id="audioPlayer" controls class="mt-3"></audio>
-    </div>
+        <div class="mt-3">
+            <button id="playButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded m-2">Play</button>
+            <button id="pauseButton" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded m-2">Pause</button>
+            <button id="stopButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded m-2">Stop</button>
+        </div>
+    </div>      
     <script src="app.js"></script>
   </body>
 </html>
