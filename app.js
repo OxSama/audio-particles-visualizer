@@ -54,11 +54,37 @@ particlesJS('particles-js', {
 });
 
 
-document.getElementById('audioFile').addEventListener('change', function(evt) {
-    var sound = document.getElementById('audioPlayer');
-    sound.src = URL.createObjectURL(this.files[0]);
-    sound.onend = function(e) {
-      URL.revokeObjectURL(this.src);
+var audioContext = new AudioContext();
+var analyser = audioContext.createAnalyser();
+var audioSource = null;
+var data = new Uint8Array(analyser.frequencyBinCount);
+
+function loop() {
+    analyser.getByteFrequencyData(data);
+    var pJS = window.pJSDom[0].pJS;
+    for (let i = 0; i < pJS.particles.array.length; i++) {
+        let particle = pJS.particles.array[i];
+        particle.radius = data[i % data.length] / 20;
     }
-    sound.play();
+    requestAnimationFrame(loop);
+}
+
+document.getElementById('audioFile').addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    var reader = new FileReader();
+    reader.onload = function (e) {
+        audioContext.decodeAudioData(e.target.result, function (buffer) {
+            if (audioSource != null) {
+                audioSource.disconnect();
+            }
+            audioSource = audioContext.createBufferSource();
+            audioSource.buffer = buffer;
+            audioSource.connect(analyser);
+            analyser.connect(audioContext.destination);
+            audioSource.start(0);
+        });
+    };
+    reader.readAsArrayBuffer(file);
 });
+
+loop();
