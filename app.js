@@ -132,10 +132,8 @@ function loop() {
 
     for (let i = 0; i < pJS.particles.array.length; i++) {
         let particle = pJS.particles.array[i];
-        console.log(particle);
 
-
-        const sizeMultiplier = 2;
+        const sizeMultiplier = 10;  // Increase the size multiplier
         const speedMultiplier = upperAvg / 256;
 
         const baseSpeed = 2;
@@ -147,19 +145,23 @@ function loop() {
         // Modify particle size according to the bass (lower frequencies)
         particle.radius = particle.vm * (1 + lowerMaxNormalized * sizeMultiplier);
 
+        // We need to limit the minimum and maximum size of particles
+        const maxSize = 20; // You can adjust this as needed
+        const minSize = 1;  // You can adjust this as needed
+        particle.radius = Math.min(maxSize, Math.max(minSize, particle.radius));
 
         let currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
         if (currentSpeed > maxSpeed) {
             particle.vx = (particle.vx / currentSpeed) * maxSpeed;
             particle.vy = (particle.vy / currentSpeed) * maxSpeed;
         }
-
     }
 
     if (isPlaying) {
         requestAnimationFrame(loop);
     }
 }
+
 
 // A couple of helper functions
 function arrayAverage(array) {
