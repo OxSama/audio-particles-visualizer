@@ -115,8 +115,8 @@ function loop() {
     var pJS = window.pJSDom[0].pJS;
 
     // Divide the frequency data into two halves
-    let lowerHalfArray = data.slice(0, (data.length/2) - 1);
-    let upperHalfArray = data.slice((data.length/2) - 1, data.length - 1);
+    let lowerHalfArray = data.slice(0, (data.length / 2) - 1);
+    let upperHalfArray = data.slice((data.length / 2) - 1, data.length - 1);
 
     let overallAvg = arrayAverage(data);
     let lowerMax = max(lowerHalfArray);
@@ -124,27 +124,35 @@ function loop() {
     let upperMax = max(upperHalfArray);
     let upperAvg = arrayAverage(upperHalfArray);
 
-    const lowerMaxNormalized = lowerMax / 256; 
+    let speed = overallAvg;
+    let maxSpeed = 1;
+
+    const lowerMaxNormalized = lowerMax / 256;
     const upperMaxNormalized = upperMax / 256;
 
     for (let i = 0; i < pJS.particles.array.length; i++) {
         let particle = pJS.particles.array[i];
+        console.log(particle);
 
-        const sizeMultiplier = 10; 
-        const speedMultiplier = 5;
 
-        particle.vs = particle.vs || particle.velocity.speed;
+        const sizeMultiplier = 2;
+        const speedMultiplier = upperAvg / 256;
+
+        const baseSpeed = 2;
+        particle.vx = baseSpeed * speedMultiplier;
+        particle.vy = baseSpeed * speedMultiplier;
+
         particle.vm = particle.vm || particle.radius;
 
         // Modify particle size according to the bass (lower frequencies)
-        particle.radius = particle.vm * (1 + lowerMaxNormalized * sizeMultiplier * 2);
-        // particle.radius = particle.vm + (lowerMaxNormalized * sizeMultiplier);
+        particle.radius = particle.vm * (1 + lowerMaxNormalized * sizeMultiplier);
 
-        
 
-        // Modify particle speed according to the treble (higher frequencies)
-        particle.velocity.speed = particle.vs * (1 + upperMaxNormalized * speedMultiplier * 2);
-        // particle.velocity.speed = particle.vs + (upperMaxNormalized * speedMultiplier);
+        let currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+        if (currentSpeed > maxSpeed) {
+            particle.vx = (particle.vx / currentSpeed) * maxSpeed;
+            particle.vy = (particle.vy / currentSpeed) * maxSpeed;
+        }
 
     }
 
