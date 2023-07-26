@@ -1,4 +1,4 @@
-particlesJS('particles-js', {
+var particlesInitialConfig = {
     "particles": {
         "number": {
             "value": 100, // increased number of particles
@@ -25,17 +25,17 @@ particlesJS('particles-js', {
             "random": false,
             "anim": {
                 "enable": false,
-                "speed": 1,
+                "speed": 0.5,
                 "opacity_min": 0.1,
                 "sync": false
             }
         },
         "size": {
-            "value": 5, // Slightly smaller particles
+            "value": 5,
             "random": true,
             "anim": {
-                "enable": false,
-                "speed": 80,
+                "enable": true,
+                "speed": 1,
                 "size_min": 0.1,
                 "sync": false
             }
@@ -44,12 +44,12 @@ particlesJS('particles-js', {
             "enable": true,
             "distance": 300,
             "color": "#ffffff",
-            "opacity": 0.4,
+            "opacity": 0.05,
             "width": 2
         },
         "move": {
             "enable": true,
-            "speed": 12,
+            "speed": 2,
             "direction": "none",
             "random": false,
             "straight": false,
@@ -66,12 +66,12 @@ particlesJS('particles-js', {
         "detect_on": "canvas",
         "events": {
             "onhover": {
-                "enable": false,
-                "mode": "repulse"
+                "enable": true,
+                "mode": "grab"
             },
             "onclick": {
                 "enable": true,
-                "mode": "push"
+                "mode": "repulse"
             },
             "resize": true
         },
@@ -79,7 +79,7 @@ particlesJS('particles-js', {
             "grab": {
                 "distance": 800,
                 "line_linked": {
-                    "opacity": 1
+                    "opacity": 0.1
                 }
             },
             "bubble": {
@@ -102,13 +102,18 @@ particlesJS('particles-js', {
         }
     },
     "retina_detect": true
-});
+};
+particlesJS('particles-js', particlesInitialConfig);
 
 var audioContext = new AudioContext();
 var analyser = audioContext.createAnalyser();
 var audioSource = null;
 var data = new Uint8Array(analyser.frequencyBinCount);
 var isPlaying = false;
+var buffer = null;
+
+var audioPlayer = document.getElementById('audioPlayer');
+var seekBar = document.getElementById('seekBar');
 
 function loop() {
     analyser.getByteFrequencyData(data);
@@ -178,7 +183,8 @@ document.getElementById('audioFile').addEventListener('change', function (e) {
     var file = e.target.files[0];
     var reader = new FileReader();
     reader.onload = function (e) {
-        audioContext.decodeAudioData(e.target.result, function (buffer) {
+        audioContext.decodeAudioData(e.target.result, function (decodedBuffer) {
+            buffer = decodedBuffer;
             if (audioSource != null) {
                 audioSource.disconnect();
             }
@@ -190,8 +196,6 @@ document.getElementById('audioFile').addEventListener('change', function (e) {
     };
     reader.readAsArrayBuffer(file);
 
-    var audioPlayer = document.getElementById('audioPlayer');
-    var seekBar = document.getElementById('seekBar');
 
     audioPlayer.ontimeupdate = function () {
         var value = (100 / audioPlayer.duration) * audioPlayer.currentTime;
@@ -206,6 +210,10 @@ document.getElementById('audioFile').addEventListener('change', function (e) {
 
 document.getElementById('playButton').addEventListener('click', function () {
     if (!isPlaying && audioSource) {
+        audioSource = audioContext.createBufferSource();
+        audioSource.buffer = buffer;
+        audioSource.connect(analyser);
+        analyser.connect(audioContext.destination);
         audioSource.start(0);
         isPlaying = true;
         loop();
@@ -214,15 +222,39 @@ document.getElementById('playButton').addEventListener('click', function () {
 
 document.getElementById('pauseButton').addEventListener('click', function () {
     if (isPlaying) {
-        audioSource.stop();
+        audioSource.disconnect();
+        audioSource = null;
         isPlaying = false;
+        var pJS = window.pJSDom[0].pJS;
+        console.log(pJS.particles.array[0]);
+        console.log(pJS);
+        console.log(pJS.particles.move);
+        pJS.particles.move.random = true;
+        // for (let i = 0; i < pJS.particles.array.length; i++) {
+        //     let particle = pJS.particles.array[i];
+        //     particle.vx = particlesInitialConfig.particles.move.speed; // or any other initial value you want
+        //     particle.vy = particlesInitialConfig.particles.move.speed; // or any other initial value you want
+        //     particle.radius = particlesInitialConfig.particles.size.value; // or any other initial value you want
+        // }
     }
+
 });
 
 document.getElementById('stopButton').addEventListener('click', function () {
     if (isPlaying) {
         audioSource.stop();
         audioSource = null;
+        isPlaying = false;
+    }
+});
+
+audioPlayer.addEventListener('ended', function () {
+    var pJS = window.pJSDom[0].pJS;
+    particlesJS('particles-js', particlesInitialConfig);
+
+    console.log("The audio track has ended, particles behavior is reset.");
+    // do something when the audio track has ended...
+    if (isPlaying) {
         isPlaying = false;
     }
 });
