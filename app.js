@@ -1,4 +1,4 @@
-var particlesInitialConfig = {
+let particlesInitialConfig = {
     "particles": {
         "number": {
             "value": 100, // increased number of particles
@@ -11,7 +11,7 @@ var particlesInitialConfig = {
             "value": ["#fc0303", "#fcdb03", "#039dfc", "#fc03ca", "#03fc20"] // Array of vibrant colors
         },
         "shape": {
-            "type": ["circle", "edge", "triangle"], // Variety of shapes
+            "type": ["circle", "edge", "triangle"], // letiety of shapes
             "stroke": {
                 "width": 0,
                 "color": "#000000"
@@ -105,38 +105,33 @@ var particlesInitialConfig = {
 };
 particlesJS('particles-js', particlesInitialConfig);
 
-var audioContext = new AudioContext();
-var analyser = audioContext.createAnalyser();
-var audioSource = null;
-var data = new Uint8Array(analyser.frequencyBinCount);
-var isPlaying = false;
-var buffer = null;
+let audioContext = new AudioContext();
+let analyser = audioContext.createAnalyser();
+let audioSource = null;
+let data = new Uint8Array(analyser.frequencyBinCount);
+let isPlaying = false;
+let buffer = null;
 
-var audioPlayer = document.getElementById('audioPlayer');
-var seekBar = document.getElementById('seekBar');
+let audioPlayer = document.getElementById('audioPlayer');
+let seekBar = document.getElementById('seekBar');
 
 function loop() {
     analyser.getByteFrequencyData(data);
-    var pJS = window.pJSDom[0].pJS;
+    let pJS = window.pJSDom[0].pJS;
 
     // Divide the frequency data into two halves
     let lowerHalfArray = data.slice(0, (data.length / 2) - 1);
     let upperHalfArray = data.slice((data.length / 2) - 1, data.length - 1);
 
-    let overallAvg = arrayAverage(data);
     let lowerMax = max(lowerHalfArray);
-    let lowerAvg = arrayAverage(lowerHalfArray);
-    let upperMax = max(upperHalfArray);
     let upperAvg = arrayAverage(upperHalfArray);
 
-    let speed = overallAvg;
     let maxSpeed = 1;
 
     const lowerMaxNormalized = lowerMax / 256;
-    const upperMaxNormalized = upperMax / 256;
 
-    for (let i = 0; i < pJS.particles.array.length; i++) {
-        let particle = pJS.particles.array[i];
+    for (const element of pJS.particles.array) {
+        let particle = element;
 
         const sizeMultiplier = 10;  // Increase the size multiplier
         const speedMultiplier = upperAvg / 256;
@@ -180,8 +175,8 @@ function max(array) {
 }
 
 document.getElementById('audioFile').addEventListener('change', function (e) {
-    var file = e.target.files[0];
-    var reader = new FileReader();
+    let file = e.target.files[0];
+    let reader = new FileReader();
     reader.onload = function (e) {
         audioContext.decodeAudioData(e.target.result, function (decodedBuffer) {
             buffer = decodedBuffer;
@@ -198,12 +193,12 @@ document.getElementById('audioFile').addEventListener('change', function (e) {
 
 
     audioPlayer.ontimeupdate = function () {
-        var value = (100 / audioPlayer.duration) * audioPlayer.currentTime;
+        let value = (100 / audioPlayer.duration) * audioPlayer.currentTime;
         seekBar.value = value;
     }
 
     seekBar.addEventListener("change", function () {
-        var currentTime = audioPlayer.duration * (seekBar.value / 100);
+        let currentTime = audioPlayer.duration * (seekBar.value / 100);
         audioPlayer.currentTime = currentTime;
     });
 });
@@ -225,7 +220,7 @@ document.getElementById('pauseButton').addEventListener('click', function () {
         audioSource.disconnect();
         audioSource = null;
         isPlaying = false;
-        var pJS = window.pJSDom[0].pJS;
+        let pJS = window.pJSDom[0].pJS;
         console.log(pJS.particles.array[0]);
         console.log(pJS);
         console.log(pJS.particles.move);
@@ -249,7 +244,7 @@ document.getElementById('stopButton').addEventListener('click', function () {
 });
 
 audioPlayer.addEventListener('ended', function () {
-    var pJS = window.pJSDom[0].pJS;
+    let pJS = window.pJSDom[0].pJS;
     particlesJS('particles-js', particlesInitialConfig);
 
     console.log("The audio track has ended, particles behavior is reset.");
