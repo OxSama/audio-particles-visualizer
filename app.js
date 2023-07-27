@@ -1,17 +1,17 @@
 let particlesInitialConfig = {
     "particles": {
         "number": {
-            "value": 100, // increased number of particles
+            "value": 50, 
             "density": {
                 "enable": true,
                 "value_area": 800
             }
         },
         "color": {
-            "value": ["#fc0303", "#fcdb03", "#039dfc", "#fc03ca", "#03fc20"] // Array of vibrant colors
+            "value": ["#fc0303", "#fcdb03", "#039dfc", "#fc03ca", "#03fc20"] 
         },
         "shape": {
-            "type": ["circle", "edge", "triangle"], // letiety of shapes
+            "type": ["circle", "edge", "triangle", "polygon"],
             "stroke": {
                 "width": 0,
                 "color": "#000000"
@@ -25,17 +25,17 @@ let particlesInitialConfig = {
             "random": false,
             "anim": {
                 "enable": false,
-                "speed": 0.5,
+                "speed": 1,
                 "opacity_min": 0.1,
                 "sync": false
             }
         },
         "size": {
-            "value": 5,
+            "value": 5, // Slightly smaller particles
             "random": true,
             "anim": {
-                "enable": true,
-                "speed": 1,
+                "enable": false,
+                "speed": 80,
                 "size_min": 0.1,
                 "sync": false
             }
@@ -44,14 +44,14 @@ let particlesInitialConfig = {
             "enable": true,
             "distance": 300,
             "color": "#ffffff",
-            "opacity": 0.05,
+            "opacity": 0.2,
             "width": 2
         },
         "move": {
             "enable": true,
             "speed": 2,
             "direction": "none",
-            "random": false,
+            "random": true,
             "straight": false,
             "out_mode": "out",
             "bounce": false,
@@ -67,11 +67,11 @@ let particlesInitialConfig = {
         "events": {
             "onhover": {
                 "enable": true,
-                "mode": "grab"
+                "mode": "none"
             },
             "onclick": {
                 "enable": true,
-                "mode": "repulse"
+                "mode": "push"
             },
             "resize": true
         },
@@ -79,7 +79,7 @@ let particlesInitialConfig = {
             "grab": {
                 "distance": 800,
                 "line_linked": {
-                    "opacity": 0.1
+                    "opacity": 1
                 }
             },
             "bubble": {
@@ -94,7 +94,7 @@ let particlesInitialConfig = {
                 "duration": 0.4
             },
             "push": {
-                "particles_nb": 4
+                "particles_nb": 1
             },
             "remove": {
                 "particles_nb": 2
@@ -130,8 +130,8 @@ function loop() {
 
     const lowerMaxNormalized = lowerMax / 256;
 
-    for (const element of pJS.particles.array) {
-        let particle = element;
+    for (let i = 0; i < pJS.particles.array.length; i++) {
+        let particle = pJS.particles.array[i];
 
         const sizeMultiplier = 10;  // Increase the size multiplier
         const speedMultiplier = upperAvg / 256;
@@ -220,17 +220,6 @@ document.getElementById('pauseButton').addEventListener('click', function () {
         audioSource.disconnect();
         audioSource = null;
         isPlaying = false;
-        let pJS = window.pJSDom[0].pJS;
-        console.log(pJS.particles.array[0]);
-        console.log(pJS);
-        console.log(pJS.particles.move);
-        pJS.particles.move.random = true;
-        // for (let i = 0; i < pJS.particles.array.length; i++) {
-        //     let particle = pJS.particles.array[i];
-        //     particle.vx = particlesInitialConfig.particles.move.speed; // or any other initial value you want
-        //     particle.vy = particlesInitialConfig.particles.move.speed; // or any other initial value you want
-        //     particle.radius = particlesInitialConfig.particles.size.value; // or any other initial value you want
-        // }
     }
 
 });
