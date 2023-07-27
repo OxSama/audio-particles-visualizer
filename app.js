@@ -112,6 +112,8 @@ const data = new Uint8Array(analyser.frequencyBinCount);
 let isPlaying = false;
 let isPaused = false;
 let buffer = null;
+let audioStartTime = 0;
+let pausedAt = 0;
 
 const audioPlayer = document.getElementById('audioPlayer');
 const seekBar = document.getElementById('seekBar');
@@ -228,31 +230,44 @@ function handlePlay() {
         audioSource.buffer = buffer;
         audioSource.connect(analyser);
         analyser.connect(audioContext.destination);
-        audioSource.start(0);
+
+        const offset = pausedAt - audioStartTime;
+        audioSource.start(0, offset);
+        
         isPlaying = true;
+        isPaused = false;
+        audioStartTime = audioContext.currentTime - offset;
+        
         loop();
     }
 }
 
-
 function handlePause() {
-    if (isPlaying) {
-        isPaused = true;
-        audioSource.disconnect();
-        audioSource = null;
-        isPlaying = false;
-    }
-}
-
-function handleStop() {
     if (isPlaying) {
         audioSource.stop();
         audioSource = null;
         isPlaying = false;
+        isPaused = true;
+        pausedAt = audioContext.currentTime;
     }
-    // Reset particles to initial configuration
-    particlesJS('particles-js', particlesInitialConfig);
 }
+
+function handleStop() {
+    if (isPlaying || isPaused) {
+        if (audioSource) {
+            audioSource.stop();
+            audioSource = null;
+        }
+        isPlaying = false;
+        isPaused = false;
+        audioStartTime = 0;
+        pausedAt = 0;
+
+        // Reset particles to initial configuration
+        particlesJS('particles-js', particlesInitialConfig);
+    }
+}
+
 
 
 function setupButtonListeners() {
