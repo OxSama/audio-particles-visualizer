@@ -1,4 +1,4 @@
-let particlesInitialConfig = {
+const particlesInitialConfig = {
     "particles": {
         "number": {
             "value": 50, 
@@ -105,15 +105,20 @@ let particlesInitialConfig = {
 };
 particlesJS('particles-js', particlesInitialConfig);
 
-let audioContext = new AudioContext();
-let analyser = audioContext.createAnalyser();
+const audioContext = new AudioContext();
+const analyser = audioContext.createAnalyser();
 let audioSource = null;
-let data = new Uint8Array(analyser.frequencyBinCount);
+const data = new Uint8Array(analyser.frequencyBinCount);
 let isPlaying = false;
 let buffer = null;
 
-let audioPlayer = document.getElementById('audioPlayer');
-let seekBar = document.getElementById('seekBar');
+const audioPlayer = document.getElementById('audioPlayer');
+const seekBar = document.getElementById('seekBar');
+
+
+function setupFileListener() {
+    document.getElementById('audioFile').addEventListener('change', handleFileChange);
+}
 
 function loop() {
     analyser.getByteFrequencyData(data);
@@ -174,7 +179,11 @@ function max(array) {
     return Math.max.apply(null, array);
 }
 
-document.getElementById('audioFile').addEventListener('change', function (e) {
+function setupFileListener() {
+    document.getElementById('audioFile').addEventListener('change', handleFileChange);
+}
+
+function handleFileChange(e){
     let file = e.target.files[0];
     let reader = new FileReader();
     reader.onload = function (e) {
@@ -201,9 +210,10 @@ document.getElementById('audioFile').addEventListener('change', function (e) {
         let currentTime = audioPlayer.duration * (seekBar.value / 100);
         audioPlayer.currentTime = currentTime;
     });
-});
+}
 
-document.getElementById('playButton').addEventListener('click', function () {
+
+function handlePlay() {
     if (!isPlaying && audioSource) {
         audioSource = audioContext.createBufferSource();
         audioSource.buffer = buffer;
@@ -213,24 +223,31 @@ document.getElementById('playButton').addEventListener('click', function () {
         isPlaying = true;
         loop();
     }
-});
+}
 
-document.getElementById('pauseButton').addEventListener('click', function () {
+
+function handlePause() {
     if (isPlaying) {
         audioSource.disconnect();
         audioSource = null;
         isPlaying = false;
     }
+}
 
-});
-
-document.getElementById('stopButton').addEventListener('click', function () {
+function handleStop() {
     if (isPlaying) {
         audioSource.stop();
         audioSource = null;
         isPlaying = false;
     }
-});
+}
+
+
+function setupButtonListeners() {
+    document.getElementById('playButton').addEventListener('click', handlePlay);
+    document.getElementById('pauseButton').addEventListener('click', handlePause);
+    document.getElementById('stopButton').addEventListener('click', handleStop);
+}
 
 audioPlayer.addEventListener('ended', function () {
     let pJS = window.pJSDom[0].pJS;
@@ -242,3 +259,7 @@ audioPlayer.addEventListener('ended', function () {
         isPlaying = false;
     }
 });
+
+
+setupFileListener();
+setupButtonListeners();
