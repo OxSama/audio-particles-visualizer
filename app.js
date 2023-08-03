@@ -1,14 +1,14 @@
 const particlesInitialConfig = {
     "particles": {
         "number": {
-            "value": 50, 
+            "value": 50,
             "density": {
                 "enable": true,
                 "value_area": 800
             }
         },
         "color": {
-            "value": ["#fc0303", "#fcdb03", "#039dfc", "#fc03ca", "#03fc20"] 
+            "value": ["#fc0303", "#fcdb03", "#039dfc", "#fc03ca", "#03fc20"]
         },
         "shape": {
             "type": ["circle", "edge", "triangle", "polygon"],
@@ -124,7 +124,7 @@ function setupFileListener() {
 }
 
 function loop() {
-    
+
     analyser.getByteFrequencyData(data);
     let pJS = window.pJSDom[0].pJS;
 
@@ -138,28 +138,28 @@ function loop() {
     let maxSpeed = 1;
 
     const lowerMaxNormalized = lowerMax / 256;
-    if(!isPaused){
-    
+    if (!isPaused) {
+
         for (let i = 0; i < pJS.particles.array.length; i++) {
             let particle = pJS.particles.array[i];
-    
+
             const sizeMultiplier = 10;  // Increase the size multiplier
             const speedMultiplier = upperAvg / 256;
-    
+
             const baseSpeed = 2;
             particle.vx = baseSpeed * speedMultiplier;
             particle.vy = baseSpeed * speedMultiplier;
-    
+
             particle.vm = particle.vm || particle.radius;
-    
+
             // Modify particle size according to the bass (lower frequencies)
             particle.radius = particle.vm * (1 + lowerMaxNormalized * sizeMultiplier);
-    
+
             // We need to limit the minimum and maximum size of particles
             const maxSize = 20; // You can adjust this as needed
             const minSize = 1;  // You can adjust this as needed
             particle.radius = Math.min(maxSize, Math.max(minSize, particle.radius));
-    
+
             let currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
             if (currentSpeed > maxSpeed) {
                 particle.vx = (particle.vx / currentSpeed) * maxSpeed;
@@ -167,7 +167,7 @@ function loop() {
             }
         }
     }
-    
+
 
     if (isPlaying) {
         requestAnimationFrame(loop);
@@ -186,11 +186,7 @@ function max(array) {
     return Math.max.apply(null, array);
 }
 
-function setupFileListener() {
-    document.getElementById('audioFile').addEventListener('change', handleFileChange);
-}
-
-function handleFileChange(e){
+function handleFileChange(e) {
     let file = e.target.files[0];
     if (!file.type.startsWith('audio')) {
         alert('Please select an audio file.');
@@ -233,11 +229,11 @@ function handlePlay() {
 
         const offset = pausedAt - audioStartTime;
         audioSource.start(0, offset);
-        
+
         isPlaying = true;
         isPaused = false;
         audioStartTime = audioContext.currentTime - offset;
-        
+
         loop();
     }
 }
@@ -287,6 +283,9 @@ audioPlayer.addEventListener('ended', function () {
     }
 });
 
+document.getElementById('volumeSlider').addEventListener('input', function () {
+    audioPlayer.volume = this.value / 100;
+});
 
 setupFileListener();
 setupButtonListeners();
