@@ -115,6 +115,7 @@ let isPaused = false;
 let buffer = null;
 let audioStartTime = 0;
 let pausedAt = 0;
+let isStopped = false;
 
 const audioPlayer = document.getElementById('audioPlayer');
 const seekBar = document.getElementById('seekBar');
@@ -131,8 +132,10 @@ function setupFileListener() {
 
 function loop() {
 
+    if(!isStopped){
     analyser.getByteFrequencyData(data);
-    let pJS = window.pJSDom[0].pJS;
+    console.log(window.pJSDom, window.pJSDom.length - 1);
+    let pJS = window.pJSDom[window.pJSDom.length - 1 ].pJS;
 
     // Divide the frequency data into two halves
     let lowerHalfArray = data.slice(0, (data.length / 2) - 1);
@@ -178,6 +181,7 @@ function loop() {
     if (isPlaying) {
         requestAnimationFrame(loop);
     }
+}
 }
 
 
@@ -238,6 +242,7 @@ function handlePlay() {
 
         isPlaying = true;
         isPaused = false;
+        isStopped = false;
         audioStartTime = audioContext.currentTime - offset;
 
         loop();
@@ -264,6 +269,7 @@ function handleStop() {
         isPaused = false;
         audioStartTime = 0;
         pausedAt = 0;
+        isStopped = true;
 
         // Reset particles to initial configuration
         particlesJS('particles-js', particlesInitialConfig);
