@@ -29,8 +29,21 @@
             <input type="range" id="seekBar" value="0" class="w-full">
         </div>
         <div class="mt-5">
-            <input type="range" id="volumeSlider" min="0" max="100" value="100">
+            <input type="range" id="volumeSlider" min="0" max="100" value="100" class="w-64">
         </div>
+
+        <button id="explanationButton" class="mt-5 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500">Explanation</button>
+
+        <div id="explanationContainer" style="display: none;" class="fixed inset-0 flex items-center justify-center z-50">
+            <div class="bg-black opacity-50 absolute inset-0"></div>
+            <div class="relative bg-white p-5 rounded shadow-lg max-w-md m-auto">
+                <h2 class="text-2xl font-bold mb-3">Interactive Explanation</h2>
+                <p id="explanationText" class="mb-5"></p>
+                <button id="nextButton" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500">Next</button>
+                <button id="closeButton" class="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center hover:bg-red-600">X</button>
+            </div>
+        </div>
+        
 
     </div>
 </body>

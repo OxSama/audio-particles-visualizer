@@ -198,6 +198,7 @@ function max(array) {
 
 function handleFileChange(e) {
     let file = e.target.files[0];
+    // console.log(e.target.files)
     if (!file.type.startsWith('audio')) {
         alert('Please select an audio file.');
         return;
@@ -218,10 +219,7 @@ function handleFileChange(e) {
     reader.readAsArrayBuffer(file);
 
 
-    audioPlayer.ontimeupdate = function () {
-        let value = (100 / audioPlayer.duration) * audioPlayer.currentTime;
-        seekBar.value = value;
-    }
+
 
     seekBar.addEventListener("change", function () {
         let currentTime = audioPlayer.duration * (seekBar.value / 100);
@@ -274,7 +272,7 @@ function setupButtonListeners() {
 }
 
 audioPlayer.addEventListener('ended', function () {
-    let pJS = window.pJSDom[0].pJS;
+    let pJS = window.pJSDom[window.pJSDom.length - 1].pJS;
     particlesJS('particles-js', particlesInitialConfig);
 
     console.log("The audio track has ended, particles behavior is reset.");
@@ -290,3 +288,40 @@ document.getElementById('volumeSlider').addEventListener('input', function () {
 
 setupFileListener();
 setupButtonListeners();
+
+
+const explanations = [
+    "Welcome to the interactive explanation of the audio visualizer. This guide will walk you through the technical details and functioning of the application.",
+    "The audio visualizer uses the Web Audio API, a high-level JavaScript API for processing and synthesizing audio in web applications.",
+    "The visualizer responds to different frequencies of the audio file that you upload. Different frequencies will affect the motion and appearance of the particles in the visualization.",
+    "How to use the visualizer: upload an audio file from your device by clicking upload button and choose the audio file you want to hear. Then press play button.",
+    "If you want to stop the audio, press the stop button.",
+];
+
+function resetExplanation(){
+    document.getElementById('explanationContainer').style.display = 'none';
+        currentExplanationIndex = 0;
+}
+
+let currentExplanationIndex = 0;
+
+function showExplanation() {
+    document.getElementById('explanationContainer').style.display = 'block';
+    document.getElementById('explanationText').innerText = explanations[currentExplanationIndex];
+}
+
+document.getElementById('explanationButton').addEventListener('click', showExplanation);
+
+document.getElementById('nextButton').addEventListener('click', () => {
+    currentExplanationIndex++;
+    if (currentExplanationIndex >= explanations.length) {
+        resetExplanation();
+    } else {
+        document.getElementById('explanationText').innerText = explanations[currentExplanationIndex];
+    }
+});
+
+
+document.getElementById("closeButton").addEventListener("click", function() {
+    resetExplanation();
+});
