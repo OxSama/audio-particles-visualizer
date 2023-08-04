@@ -105,10 +105,11 @@ const particlesInitialConfig = {
 };
 particlesJS('particles-js', particlesInitialConfig);
 
-const audioContext = new AudioContext();
-const analyser = audioContext.createAnalyser();
+
+let audioContext;
+let analyser;
 let audioSource = null;
-const data = new Uint8Array(analyser.frequencyBinCount);
+let data;
 let isPlaying = false;
 let isPaused = false;
 let buffer = null;
@@ -118,6 +119,11 @@ let pausedAt = 0;
 const audioPlayer = document.getElementById('audioPlayer');
 const seekBar = document.getElementById('seekBar');
 
+window.onload = () => {
+    audioContext = new AudioContext();
+    analyser = audioContext.createAnalyser();
+    data = new Uint8Array(analyser.frequencyBinCount);
+};
 
 function setupFileListener() {
     document.getElementById('audioFile').addEventListener('change', handleFileChange);
