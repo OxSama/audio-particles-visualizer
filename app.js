@@ -249,16 +249,6 @@ function handlePlay() {
     }
 }
 
-function handlePause() {
-    if (isPlaying) {
-        audioSource.stop();
-        audioSource = null;
-        isPlaying = false;
-        isPaused = true;
-        pausedAt = audioContext.currentTime;
-    }
-}
-
 function handleStop() {
     if (isPlaying || isPaused) {
         if (audioSource) {
@@ -280,7 +270,6 @@ function handleStop() {
 
 function setupButtonListeners() {
     document.getElementById('playButton').addEventListener('click', handlePlay);
-    document.getElementById('pauseButton').addEventListener('click', handlePause);
     document.getElementById('stopButton').addEventListener('click', handleStop);
 }
 
