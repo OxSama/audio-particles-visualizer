@@ -132,56 +132,56 @@ function setupFileListener() {
 
 function loop() {
 
-    if(!isStopped){
-    analyser.getByteFrequencyData(data);
-    console.log(window.pJSDom, window.pJSDom.length - 1);
-    let pJS = window.pJSDom[window.pJSDom.length - 1 ].pJS;
+    if (!isStopped) {
+        analyser.getByteFrequencyData(data);
+        console.log(window.pJSDom, window.pJSDom.length - 1);
+        let pJS = window.pJSDom[window.pJSDom.length - 1].pJS;
 
-    // Divide the frequency data into two halves
-    let lowerHalfArray = data.slice(0, (data.length / 2) - 1);
-    let upperHalfArray = data.slice((data.length / 2) - 1, data.length - 1);
+        // Divide the frequency data into two halves
+        let lowerHalfArray = data.slice(0, (data.length / 2) - 1);
+        let upperHalfArray = data.slice((data.length / 2) - 1, data.length - 1);
 
-    let lowerMax = max(lowerHalfArray);
-    let upperAvg = arrayAverage(upperHalfArray);
+        let lowerMax = max(lowerHalfArray);
+        let upperAvg = arrayAverage(upperHalfArray);
 
-    let maxSpeed = 1;
+        let maxSpeed = 1;
 
-    const lowerMaxNormalized = lowerMax / 256;
-    if (!isPaused) {
+        const lowerMaxNormalized = lowerMax / 256;
+        if (!isPaused) {
 
-        for (let i = 0; i < pJS.particles.array.length; i++) {
-            let particle = pJS.particles.array[i];
+            for (let i = 0; i < pJS.particles.array.length; i++) {
+                let particle = pJS.particles.array[i];
 
-            const sizeMultiplier = 10;  // Increase the size multiplier
-            const speedMultiplier = upperAvg / 256;
+                const sizeMultiplier = 10;  // Increase the size multiplier
+                const speedMultiplier = upperAvg / 256;
 
-            const baseSpeed = 2;
-            particle.vx = baseSpeed * speedMultiplier;
-            particle.vy = baseSpeed * speedMultiplier;
+                const baseSpeed = 2;
+                particle.vx = baseSpeed * speedMultiplier;
+                particle.vy = baseSpeed * speedMultiplier;
 
-            particle.vm = particle.vm || particle.radius;
+                particle.vm = particle.vm || particle.radius;
 
-            // Modify particle size according to the bass (lower frequencies)
-            particle.radius = particle.vm * (1 + lowerMaxNormalized * sizeMultiplier);
+                // Modify particle size according to the bass (lower frequencies)
+                particle.radius = particle.vm * (1 + lowerMaxNormalized * sizeMultiplier);
 
-            // We need to limit the minimum and maximum size of particles
-            const maxSize = 20; // You can adjust this as needed
-            const minSize = 1;  // You can adjust this as needed
-            particle.radius = Math.min(maxSize, Math.max(minSize, particle.radius));
+                // We need to limit the minimum and maximum size of particles
+                const maxSize = 20; // You can adjust this as needed
+                const minSize = 1;  // You can adjust this as needed
+                particle.radius = Math.min(maxSize, Math.max(minSize, particle.radius));
 
-            let currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
-            if (currentSpeed > maxSpeed) {
-                particle.vx = (particle.vx / currentSpeed) * maxSpeed;
-                particle.vy = (particle.vy / currentSpeed) * maxSpeed;
+                let currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+                if (currentSpeed > maxSpeed) {
+                    particle.vx = (particle.vx / currentSpeed) * maxSpeed;
+                    particle.vy = (particle.vy / currentSpeed) * maxSpeed;
+                }
             }
         }
-    }
 
 
-    if (isPlaying) {
-        requestAnimationFrame(loop);
+        if (isPlaying) {
+            requestAnimationFrame(loop);
+        }
     }
-}
 }
 
 
@@ -298,9 +298,9 @@ const explanations = [
     "If you want to stop the audio, press the stop button.",
 ];
 
-function resetExplanation(){
+function resetExplanation() {
     document.getElementById('explanationContainer').style.display = 'none';
-        currentExplanationIndex = 0;
+    currentExplanationIndex = 0;
 }
 
 let currentExplanationIndex = 0;
@@ -322,6 +322,6 @@ document.getElementById('nextButton').addEventListener('click', () => {
 });
 
 
-document.getElementById("closeButton").addEventListener("click", function() {
+document.getElementById("closeButton").addEventListener("click", function () {
     resetExplanation();
 });
