@@ -106,95 +106,184 @@ const particlesInitialConfig = {
 particlesJS('particles-js', particlesInitialConfig);
 
 
-let audioContext;
-let analyser;
-let audioSource = null;
-let data;
-let isPlaying = false;
-let isPaused = false;
-let buffer = null;
-let audioStartTime = 0;
-let pausedAt = 0;
-let isStopped = false;
 
-const audioPlayer = document.getElementById('audioPlayer');
-const seekBar = document.getElementById('seekBar');
+class AudioVisualizer {
+    constructor() {
+        this.audioContext = new AudioContext();
+        this.analyser = this.audioContext.createAnalyser();
+        this.audioSource = null;
+        this.data = new Uint8Array(this.analyser.frequencyBinCount);
+        this.isPlaying = false;
+        this.isPaused = false;
+        this.buffer = null;
+        this.audioStartTime = 0;
+        this.pausedAt = 0;
+        this.isStopped = false;
+        this.audioPlayer = document.getElementById('audioPlayer');
+        this.seekBar = document.getElementById('seekBar');
+        this.setupEventListeners();
+        this.loadDefaultTrack();
+    }
 
-window.onload = () => {
-    audioContext = new AudioContext();
-    analyser = audioContext.createAnalyser();
-    data = new Uint8Array(analyser.frequencyBinCount);
-};
+    setupEventListeners() {
+        document.getElementById('audioFile').addEventListener('change', this.handleFileChange.bind(this));
+        document.getElementById('playButton').addEventListener('click', this.handlePlay.bind(this));
+        document.getElementById('stopButton').addEventListener('click', this.handleStop.bind(this));
+        this.audioPlayer.addEventListener('ended', this.handleAudioEnd.bind(this));
+        this.seekBar.addEventListener('input', this.handleVolumeChange.bind(this));
+    }
 
-function setupFileListener() {
-    document.getElementById('audioFile').addEventListener('change', handleFileChange);
-}
+    loadDefaultTrack() {
+        fetch('t2.mp3')
+            .then(response => response.arrayBuffer())
+            .then(arrayBuffer => this.audioContext.decodeAudioData(arrayBuffer))
+            .then(audioBuffer => {
+                this.buffer = audioBuffer;
+                this.handlePlay();
+            })
+            .catch(e => console.error("Error loading default track:", e));
+    }
 
-function loop() {
+    handlePlay() {
+        if (this.audioSource) {
+            this.audioSource.disconnect();
+        }
+        this.audioSource = this.audioContext.createBufferSource();
+        this.audioSource.buffer = this.buffer;
+        this.audioSource.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
 
-    if (!isStopped) {
-        analyser.getByteFrequencyData(data);
-        console.log(window.pJSDom, window.pJSDom.length - 1);
-        let pJS = window.pJSDom[window.pJSDom.length - 1].pJS;
+        const offset = this.isPaused ? this.pausedAt - this.audioStartTime : 0;
+        this.audioSource.start(0, offset);
 
-        // Divide the frequency data into two halves
-        let lowerHalfArray = data.slice(0, (data.length / 2) - 1);
-        let upperHalfArray = data.slice((data.length / 2) - 1, data.length - 1);
+        this.isPlaying = true;
+        this.isPaused = false;
+        this.isStopped = false;
+        this.audioStartTime = this.audioContext.currentTime - offset;
+        this.loop();
+    }
 
-        let lowerMax = max(lowerHalfArray);
-        let upperAvg = arrayAverage(upperHalfArray);
+    handleStop() {
+        if (this.isPlaying || this.isPaused) {
+            if (this.audioSource) {
+                this.audioSource.stop();
+                this.audioSource = null;
+            }
+            this.isPlaying = false;
+            this.isPaused = false;
+            this.audioStartTime = 0;
+            this.pausedAt = 0;
+            this.isStopped = true;
+    
+            particlesJS('particles-js', particlesInitialConfig);
+        }
+    }
 
-        let maxSpeed = 1;
+    handleAudioEnd() {
+        console.log("The audio track has ended, particles behavior is reset.");
+        if (this.isPlaying) {
+            this.isPlaying = false;
+        }
+        particlesJS('particles-js', particlesInitialConfig);
+    }
 
-        const lowerMaxNormalized = lowerMax / 256;
-        if (!isPaused) {
+    handleVolumeChange(event) {
+        this.audioPlayer.volume = event.target.value / 100;
+    }
 
+    handleFileChange(e) {
+        let file = e.target.files[0];
+        if (!file.type.startsWith('audio')) {
+            alert('Please select an audio file.');
+            return;
+        }
+        let reader = new FileReader();
+        reader.onload = (e) => {
+            this.audioContext.decodeAudioData(e.target.result, (decodedBuffer) => {
+                this.buffer = decodedBuffer;
+                if (this.audioSource) {
+                    this.audioSource.disconnect();
+                }
+                this.audioSource = this.audioContext.createBufferSource();
+                this.audioSource.buffer = this.buffer;
+                this.audioSource.connect(this.analyser);
+                this.analyser.connect(this.audioContext.destination);
+            });
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    loop() {
+        if (!this.isStopped) {
+            this.analyser.getByteFrequencyData(this.data);
+    
+            let pJS = window.pJSDom[window.pJSDom.length - 1].pJS;
+    
+            // Divide the frequency data into two halves
+            let lowerHalfArray = this.data.slice(0, (this.data.length / 2) - 1);
+            let upperHalfArray = this.data.slice((this.data.length / 2) - 1, this.data.length - 1);
+    
+            let lowerMax = this.max(lowerHalfArray);
+            let upperAvg = this.arrayAverage(upperHalfArray);
+    
+            const lowerMaxNormalized = lowerMax / 256;
+            const speedMultiplier = upperAvg / 256;
+    
             for (let i = 0; i < pJS.particles.array.length; i++) {
                 let particle = pJS.particles.array[i];
-
+    
                 const sizeMultiplier = 10;  // Increase the size multiplier
-                const speedMultiplier = upperAvg / 256;
-
                 const baseSpeed = 2;
+    
+                // Modify particle velocity based on the treble (upper frequencies)
                 particle.vx = baseSpeed * speedMultiplier;
                 particle.vy = baseSpeed * speedMultiplier;
-
+    
+                // Store original size in vm, if not already stored
                 particle.vm = particle.vm || particle.radius;
-
+    
                 // Modify particle size according to the bass (lower frequencies)
                 particle.radius = particle.vm * (1 + lowerMaxNormalized * sizeMultiplier);
-
-                // We need to limit the minimum and maximum size of particles
+    
+                // Limit the minimum and maximum size of particles
                 const maxSize = 20; // You can adjust this as needed
                 const minSize = 1;  // You can adjust this as needed
                 particle.radius = Math.min(maxSize, Math.max(minSize, particle.radius));
-
+    
+                // Adjust velocity to ensure it doesn't exceed maxSpeed
                 let currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+                let maxSpeed = 1;
                 if (currentSpeed > maxSpeed) {
                     particle.vx = (particle.vx / currentSpeed) * maxSpeed;
                     particle.vy = (particle.vy / currentSpeed) * maxSpeed;
                 }
             }
+    
+            if (this.isPlaying) {
+                requestAnimationFrame(this.loop.bind(this));
+            }
         }
+    }    
 
+    arrayAverage(array) {
+        if (array.length === 0) return null;
+        let sum = array.reduce((previous, current) => current += previous);
+        return sum / array.length;
+    }
 
-        if (isPlaying) {
-            requestAnimationFrame(loop);
-        }
+    max(array) {
+        return Math.max.apply(null, array);
     }
 }
 
 
-// A couple of helper functions
-function arrayAverage(array) {
-    if (array.length === 0) return null;
-    let sum = array.reduce((previous, current) => current += previous);
-    return sum / array.length;
-}
 
-function max(array) {
-    return Math.max.apply(null, array);
-}
+window.onload = () => {
+    const visualizer = new AudioVisualizer();
+    // The autoPlay function is called inside the constructor after loading the default track
+};
+
+// 
 
 function handleFileChange(e) {
     let file = e.target.files[0];
