@@ -122,7 +122,19 @@ class AudioVisualizer {
         this.audioPlayer = document.getElementById('audioPlayer');
         this.seekBar = document.getElementById('seekBar');
         this.setupEventListeners();
-        this.loadDefaultTrack();
+        // this.loadDefaultTrack();
+
+    
+        this.playlist = [
+            'https://dl.dropboxusercontent.com/scl/fi/8km1bqcn5352t7ep4sapd/01.-STARGAZING.mp3?rlkey=mhdfkxqqm2lypqzq4w2xsnwrw&st=fb8lu7or&dl=0',
+            'https://dl.dropboxusercontent.com/scl/fi/eyhxveg8ed9o89l9qvhg2/03.-SICKO-MODE.mp3?rlkey=o42gwx5ndu4tkawnjfku1cn5f&st=q6d6z2yb&dl=0'
+        ];
+
+        this.currentTrackIndex = 1;
+
+
+        this.loadTrack(this.currentTrackIndex);
+
     }
 
     setupEventListeners() {
@@ -133,16 +145,50 @@ class AudioVisualizer {
         this.seekBar.addEventListener('input', this.handleVolumeChange.bind(this));
     }
 
-    loadDefaultTrack() {
-        fetch('t2.mp3')
+    handleFileChange(e) {
+        let file = e.target.files[0];
+        // console.log(e.target.files)
+        if (!file.type.startsWith('audio')) {
+            alert('Please select an audio file.');
+            return;
+        }
+        let reader = new FileReader();
+        reader.onload = function (e) {
+            audioContext.decodeAudioData(e.target.result, function (decodedBuffer) {
+                buffer = decodedBuffer;
+                if (audioSource != null) {
+                    audioSource.disconnect();
+                }
+                audioSource = audioContext.createBufferSource();
+                audioSource.buffer = buffer;
+                audioSource.connect(analyser);
+                analyser.connect(audioContext.destination);
+            });
+        };
+        reader.readAsArrayBuffer(file);
+
+
+
+
+        seekBar.addEventListener("change", function () {
+            let currentTime = audioPlayer.duration * (seekBar.value / 100);
+            audioPlayer.currentTime = currentTime;
+        });
+    }
+
+
+    loadTrack(trackIndex) {
+        const trackUrl = this.playlist[trackIndex];
+        fetch(trackUrl)
             .then(response => response.arrayBuffer())
             .then(arrayBuffer => this.audioContext.decodeAudioData(arrayBuffer))
             .then(audioBuffer => {
                 this.buffer = audioBuffer;
                 this.handlePlay();
             })
-            .catch(e => console.error("Error loading default track:", e));
+            .catch(e => console.error("Error loading track:", e));
     }
+    
 
     handlePlay() {
         if (this.audioSource) {
@@ -155,6 +201,8 @@ class AudioVisualizer {
 
         const offset = this.isPaused ? this.pausedAt - this.audioStartTime : 0;
         this.audioSource.start(0, offset);
+
+        this.audioSource.onended = this.handleAudioEnd.bind(this);
 
         this.isPlaying = true;
         this.isPaused = false;
@@ -174,96 +222,68 @@ class AudioVisualizer {
             this.audioStartTime = 0;
             this.pausedAt = 0;
             this.isStopped = true;
-    
+
             particlesJS('particles-js', particlesInitialConfig);
         }
     }
 
     handleAudioEnd() {
-        console.log("The audio track has ended, particles behavior is reset.");
-        if (this.isPlaying) {
-            this.isPlaying = false;
-        }
-        particlesJS('particles-js', particlesInitialConfig);
+        console.log("Track ended. Loading next track.");
+        this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
+        this.loadTrack(this.currentTrackIndex);
     }
+    
 
     handleVolumeChange(event) {
         this.audioPlayer.volume = event.target.value / 100;
     }
 
-    handleFileChange(e) {
-        let file = e.target.files[0];
-        if (!file.type.startsWith('audio')) {
-            alert('Please select an audio file.');
-            return;
-        }
-        let reader = new FileReader();
-        reader.onload = (e) => {
-            this.audioContext.decodeAudioData(e.target.result, (decodedBuffer) => {
-                this.buffer = decodedBuffer;
-                if (this.audioSource) {
-                    this.audioSource.disconnect();
-                }
-                this.audioSource = this.audioContext.createBufferSource();
-                this.audioSource.buffer = this.buffer;
-                this.audioSource.connect(this.analyser);
-                this.analyser.connect(this.audioContext.destination);
-            });
-        };
-        reader.readAsArrayBuffer(file);
-    }
 
     loop() {
-        if (!this.isStopped) {
+        if (!this.isStopped && this.isPlaying) {
             this.analyser.getByteFrequencyData(this.data);
-    
-            let pJS = window.pJSDom[window.pJSDom.length - 1].pJS;
-    
-            // Divide the frequency data into two halves
-            let lowerHalfArray = this.data.slice(0, (this.data.length / 2) - 1);
-            let upperHalfArray = this.data.slice((this.data.length / 2) - 1, this.data.length - 1);
-    
-            let lowerMax = this.max(lowerHalfArray);
-            let upperAvg = this.arrayAverage(upperHalfArray);
-    
-            const lowerMaxNormalized = lowerMax / 256;
-            const speedMultiplier = upperAvg / 256;
-    
-            for (let i = 0; i < pJS.particles.array.length; i++) {
-                let particle = pJS.particles.array[i];
-    
-                const sizeMultiplier = 10;  // Increase the size multiplier
-                const baseSpeed = 2;
-    
-                // Modify particle velocity based on the treble (upper frequencies)
-                particle.vx = baseSpeed * speedMultiplier;
-                particle.vy = baseSpeed * speedMultiplier;
-    
-                // Store original size in vm, if not already stored
-                particle.vm = particle.vm || particle.radius;
-    
-                // Modify particle size according to the bass (lower frequencies)
-                particle.radius = particle.vm * (1 + lowerMaxNormalized * sizeMultiplier);
-    
-                // Limit the minimum and maximum size of particles
-                const maxSize = 20; // You can adjust this as needed
-                const minSize = 1;  // You can adjust this as needed
-                particle.radius = Math.min(maxSize, Math.max(minSize, particle.radius));
-    
-                // Adjust velocity to ensure it doesn't exceed maxSpeed
-                let currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
-                let maxSpeed = 1;
-                if (currentSpeed > maxSpeed) {
-                    particle.vx = (particle.vx / currentSpeed) * maxSpeed;
-                    particle.vy = (particle.vy / currentSpeed) * maxSpeed;
+
+            let pJS = window.pJSDom[window.pJSDom.length - 1]?.pJS;
+
+            if (pJS?.particles?.array) {
+                let lowerHalfArray = this.data.slice(0, (this.data.length / 2) - 1);
+                let upperHalfArray = this.data.slice((this.data.length / 2) - 1, this.data.length - 1);
+
+                let lowerMax = this.max(lowerHalfArray);
+                let upperAvg = this.arrayAverage(upperHalfArray);
+
+                const lowerMaxNormalized = lowerMax / 256;
+                const speedMultiplier = upperAvg / 256;
+
+                for (let particle of pJS.particles.array) {
+                    this.adjustParticle(particle, lowerMaxNormalized, speedMultiplier);
                 }
             }
-    
-            if (this.isPlaying) {
-                requestAnimationFrame(this.loop.bind(this));
-            }
+            requestAnimationFrame(this.loop.bind(this));
         }
-    }    
+    }
+
+
+    adjustParticle(particle, lowerMaxNormalized, speedMultiplier) {
+        const sizeMultiplier = 10;
+        const baseSpeed = 2;
+        const maxSize = 20;
+        const minSize = 1;
+        const maxSpeed = 1;
+
+        particle.vx = baseSpeed * speedMultiplier;
+        particle.vy = baseSpeed * speedMultiplier;
+
+        particle.vm = particle.vm || particle.radius;
+        particle.radius = particle.vm * (1 + lowerMaxNormalized * sizeMultiplier);
+        particle.radius = Math.min(maxSize, Math.max(minSize, particle.radius));
+
+        let currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+        if (currentSpeed > maxSpeed) {
+            particle.vx = (particle.vx / currentSpeed) * maxSpeed;
+            particle.vy = (particle.vy / currentSpeed) * maxSpeed;
+        }
+    }
 
     arrayAverage(array) {
         if (array.length === 0) return null;
@@ -280,84 +300,19 @@ class AudioVisualizer {
 
 window.onload = () => {
     const visualizer = new AudioVisualizer();
+    // visualizer.setupFileListener();
+    // visualizer.setupButtonListeners();
     // The autoPlay function is called inside the constructor after loading the default track
 };
 
-// 
-
-function handleFileChange(e) {
-    let file = e.target.files[0];
-    // console.log(e.target.files)
-    if (!file.type.startsWith('audio')) {
-        alert('Please select an audio file.');
-        return;
-    }
-    let reader = new FileReader();
-    reader.onload = function (e) {
-        audioContext.decodeAudioData(e.target.result, function (decodedBuffer) {
-            buffer = decodedBuffer;
-            if (audioSource != null) {
-                audioSource.disconnect();
-            }
-            audioSource = audioContext.createBufferSource();
-            audioSource.buffer = buffer;
-            audioSource.connect(analyser);
-            analyser.connect(audioContext.destination);
-        });
-    };
-    reader.readAsArrayBuffer(file);
 
 
-
-
-    seekBar.addEventListener("change", function () {
-        let currentTime = audioPlayer.duration * (seekBar.value / 100);
-        audioPlayer.currentTime = currentTime;
-    });
-}
-
-
-function handlePlay() {
-    if (!isPlaying && audioSource) {
-        audioSource = audioContext.createBufferSource();
-        audioSource.buffer = buffer;
-        audioSource.connect(analyser);
-        analyser.connect(audioContext.destination);
-
-        const offset = pausedAt - audioStartTime;
-        audioSource.start(0, offset);
-
-        isPlaying = true;
-        isPaused = false;
-        isStopped = false;
-        audioStartTime = audioContext.currentTime - offset;
-
-        loop();
-    }
-}
-
-function handleStop() {
-    if (isPlaying || isPaused) {
-        if (audioSource) {
-            audioSource.stop();
-            audioSource = null;
-        }
-        isPlaying = false;
-        isPaused = false;
-        audioStartTime = 0;
-        pausedAt = 0;
-        isStopped = true;
-
-        // Reset particles to initial configuration
-        particlesJS('particles-js', particlesInitialConfig);
-    }
-}
 
 
 
 function setupButtonListeners() {
-    document.getElementById('playButton').addEventListener('click', handlePlay);
-    document.getElementById('stopButton').addEventListener('click', handleStop);
+    document.getElementById('playButton').addEventListener('click', visualizer.handlePlay);
+    document.getElementById('stopButton').addEventListener('click', visualizer.handleStop);
 }
 
 audioPlayer.addEventListener('ended', function () {
@@ -369,48 +324,4 @@ audioPlayer.addEventListener('ended', function () {
     if (isPlaying) {
         isPlaying = false;
     }
-});
-
-document.getElementById('volumeSlider').addEventListener('input', function () {
-    audioPlayer.volume = this.value / 100;
-});
-
-setupFileListener();
-setupButtonListeners();
-
-
-const explanations = [
-    "Welcome to the interactive explanation of the audio visualizer. This guide will walk you through the technical details and functioning of the application.",
-    "The audio visualizer uses the Web Audio API, a high-level JavaScript API for processing and synthesizing audio in web applications.",
-    "The visualizer responds to different frequencies of the audio file that you upload. Different frequencies will affect the motion and appearance of the particles in the visualization.",
-    "How to use the visualizer: upload an audio file from your device by clicking upload button and choose the audio file you want to hear. Then press play button.",
-    "If you want to stop the audio, press the stop button.",
-];
-
-function resetExplanation() {
-    document.getElementById('explanationContainer').style.display = 'none';
-    currentExplanationIndex = 0;
-}
-
-let currentExplanationIndex = 0;
-
-function showExplanation() {
-    document.getElementById('explanationContainer').style.display = 'block';
-    document.getElementById('explanationText').innerText = explanations[currentExplanationIndex];
-}
-
-document.getElementById('explanationButton').addEventListener('click', showExplanation);
-
-document.getElementById('nextButton').addEventListener('click', () => {
-    currentExplanationIndex++;
-    if (currentExplanationIndex >= explanations.length) {
-        resetExplanation();
-    } else {
-        document.getElementById('explanationText').innerText = explanations[currentExplanationIndex];
-    }
-});
-
-
-document.getElementById("closeButton").addEventListener("click", function () {
-    resetExplanation();
 });

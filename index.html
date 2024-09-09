@@ -2,19 +2,19 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Particles Dance</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
 </head>
 
 <body class="bg-gradient-to-r from-blue-400 to-purple-500 flex justify-center items-center h-screen">
     <div id="particles-js" class="absolute w-full h-full"></div>
     <div class="z-10 text-center">
         <label
-            class="block py-2 px-3 bg-purple-700 text-white font-semibold cursor-pointer rounded hover:bg-purple-600">
+            class="block py-2 px-3 bg-purple-700 text-white font-semibold cursor-pointer rounded hover:bg-purple-600 hidden">
             <input type="file" id="audioFile" accept="audio/*" class="hidden" />
             Upload Audio
         </label>
@@ -33,21 +33,30 @@
             <input type="range" id="volumeSlider" min="0" max="100" value="100" class="w-64">
         </div>
 
-        <button id="explanationButton" class="mt-5 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500">Explanation</button>
+        <button id="explanationButton"
+            class="mt-5 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500">Explanation</button>
 
-        <div id="explanationContainer" style="display: none;" class="fixed inset-0 flex items-center justify-center z-50">
+        <!-- <div id="explanationContainer" style="display: none;"
+            class="fixed inset-0 flex items-center justify-center z-50">
             <div class="bg-black opacity-50 absolute inset-0"></div>
             <div class="relative bg-white p-5 rounded shadow-lg max-w-md m-auto">
                 <h2 class="text-2xl font-bold mb-3">Interactive Explanation</h2>
                 <p id="explanationText" class="mb-5"></p>
-                <button id="nextButton" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500">Next</button>
-                <button id="closeButton" class="absolute top-2 right-2 bg-white text-white w-6 h-6 rounded-full flex items-center justify-center hover:bg-red-600"><i class="fa fa-window-close text-red-500" aria-hidden="true"></i></button>
+                <button id="nextButton"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500">Next</button>
+                <button id="closeButton"
+                    class="absolute top-2 right-2 bg-white text-white w-6 h-6 rounded-full flex items-center justify-center hover:bg-red-600"><i
+                        class="fa fa-window-close text-red-500" aria-hidden="true"></i></button>
             </div>
-        </div>
-        
+
+            <div class="mt-5 text-white">
+                <span>Particles: </span><span class="js-count-particles">0</span>
+            </div>
+        </div> -->
+
 
     </div>
+    <script src="app.js"></script>
 </body>
-<script src="app.js"></script>
 
 </html>
