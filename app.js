@@ -1,3 +1,4 @@
+// Particle system configuration
 const particlesInitialConfig = {
     "particles": {
         "number": {
@@ -31,7 +32,7 @@ const particlesInitialConfig = {
             }
         },
         "size": {
-            "value": 5, // Slightly smaller particles
+            "value": 5,
             "random": true,
             "anim": {
                 "enable": false,
@@ -103,225 +104,257 @@ const particlesInitialConfig = {
     },
     "retina_detect": true
 };
-particlesJS('particles-js', particlesInitialConfig);
-
-
 
 class AudioVisualizer {
     constructor() {
-        this.audioContext = new AudioContext();
+        // Initialize audio context with fallback
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 2048;
+        
+        // Initialize state
+        this.init();
+        
+        // Setup UI and events
+        this.setupUI();
+        this.setupEventListeners();
+        
+        // Load initial track
+        this.loadTrack(this.playlist.currentIndex, false);
+    }
+
+    init() {
+        // Audio processing setup
         this.audioSource = null;
         this.data = new Uint8Array(this.analyser.frequencyBinCount);
-        this.isPlaying = false;
-        this.isPaused = false;
+        
+        // Playback state
+        this.state = {
+            isPlaying: false,
+            isPaused: false,
+            isStopped: true
+        };
+        
+        // Timing information
+        this.timing = {
+            startTime: 0,
+            pausedAt: 0
+        };
+        
+        // Audio buffer
         this.buffer = null;
-        this.audioStartTime = 0;
-        this.pausedAt = 0;
-        this.isStopped = false;
-        this.audioPlayer = document.getElementById('audioPlayer');
-        this.seekBar = document.getElementById('seekBar');
-        this.setupEventListeners();
-        // this.loadDefaultTrack();
+        
+        // Playlist configuration
+        this.playlist = {
+            tracks: [
+                'https://dl.dropboxusercontent.com/scl/fi/8km1bqcn5352t7ep4sapd/01.-STARGAZING.mp3?rlkey=mhdfkxqqm2lypqzq4w2xsnwrw&st=fb8lu7or&dl=0',
+                'https://dl.dropboxusercontent.com/scl/fi/eyhxveg8ed9o89l9qvhg2/03.-SICKO-MODE.mp3?rlkey=o42gwx5ndu4tkawnjfku1cn5f&st=q6d6z2yb&dl=0'
+            ],
+            currentIndex: 0
+        };
+    }
 
-    
-        this.playlist = [
-            'https://dl.dropboxusercontent.com/scl/fi/8km1bqcn5352t7ep4sapd/01.-STARGAZING.mp3?rlkey=mhdfkxqqm2lypqzq4w2xsnwrw&st=fb8lu7or&dl=0',
-            'https://dl.dropboxusercontent.com/scl/fi/eyhxveg8ed9o89l9qvhg2/03.-SICKO-MODE.mp3?rlkey=o42gwx5ndu4tkawnjfku1cn5f&st=q6d6z2yb&dl=0'
-        ];
+    setupUI() {
+        // Get DOM elements
+        this.elements = {
+            container: document.getElementById('particles-js'),
+            audioPlayer: document.getElementById('audioPlayer'),
+            playButton: document.getElementById('playButton'),
+            stopButton: document.getElementById('stopButton'),
+            fileInput: document.getElementById('audioFile'),
+            seekBar: document.getElementById('seekBar'),
+            volumeSlider: document.getElementById('volumeSlider')
+        };
 
-        this.currentTrackIndex = 1;
-
-
-        this.loadTrack(this.currentTrackIndex);
-
+        // Initialize particles
+        particlesJS('particles-js', particlesInitialConfig);
     }
 
     setupEventListeners() {
-        document.getElementById('audioFile').addEventListener('change', this.handleFileChange.bind(this));
-        document.getElementById('playButton').addEventListener('click', this.handlePlay.bind(this));
-        document.getElementById('stopButton').addEventListener('click', this.handleStop.bind(this));
-        this.audioPlayer.addEventListener('ended', this.handleAudioEnd.bind(this));
-        this.seekBar.addEventListener('input', this.handleVolumeChange.bind(this));
-    }
+        // Bind methods
+        this.handlePlay = this.handlePlay.bind(this);
+        this.handleStop = this.handleStop.bind(this);
+        this.handleAudioEnd = this.handleAudioEnd.bind(this);
+        this.handleFileChange = this.handleFileChange.bind(this);
+        this.loop = this.loop.bind(this);
 
-    handleFileChange(e) {
-        let file = e.target.files[0];
-        // console.log(e.target.files)
-        if (!file.type.startsWith('audio')) {
-            alert('Please select an audio file.');
-            return;
-        }
-        let reader = new FileReader();
-        reader.onload = function (e) {
-            audioContext.decodeAudioData(e.target.result, function (decodedBuffer) {
-                buffer = decodedBuffer;
-                if (audioSource != null) {
-                    audioSource.disconnect();
+        // Add event listeners
+        this.elements.playButton.addEventListener('click', this.handlePlay);
+        this.elements.stopButton.addEventListener('click', this.handleStop);
+        this.elements.fileInput.addEventListener('change', this.handleFileChange);
+        
+        // Optional volume control
+        if (this.elements.volumeSlider) {
+            this.elements.volumeSlider.addEventListener('input', (e) => {
+                const volume = e.target.value / 100;
+                if (this.audioSource) {
+                    const gainNode = this.audioContext.createGain();
+                    gainNode.gain.value = volume;
+                    this.audioSource.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
                 }
-                audioSource = audioContext.createBufferSource();
-                audioSource.buffer = buffer;
-                audioSource.connect(analyser);
-                analyser.connect(audioContext.destination);
             });
-        };
-        reader.readAsArrayBuffer(file);
-
-
-
-
-        seekBar.addEventListener("change", function () {
-            let currentTime = audioPlayer.duration * (seekBar.value / 100);
-            audioPlayer.currentTime = currentTime;
-        });
+        }
     }
 
-
-    loadTrack(trackIndex) {
-        const trackUrl = this.playlist[trackIndex];
-        fetch(trackUrl)
-            .then(response => response.arrayBuffer())
-            .then(arrayBuffer => this.audioContext.decodeAudioData(arrayBuffer))
-            .then(audioBuffer => {
-                this.buffer = audioBuffer;
-                this.handlePlay();
-            })
-            .catch(e => console.error("Error loading track:", e));
+    async loadTrack(trackIndex, autoPlay = true) {
+        try {
+            const response = await fetch(this.playlist.tracks[trackIndex]);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            
+            this.buffer = audioBuffer;
+            if (autoPlay && !this.state.isStopped) {
+                await this.handlePlay();
+            }
+        } catch (error) {
+            console.error('Error loading track:', error);
+        }
     }
-    
 
-    handlePlay() {
+    async handlePlay() {
+        // Resume AudioContext if it's suspended (browser autoplay policy)
+        if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+        }
+
+        this.state.isStopped = false;
+
         if (this.audioSource) {
             this.audioSource.disconnect();
         }
+
         this.audioSource = this.audioContext.createBufferSource();
         this.audioSource.buffer = this.buffer;
         this.audioSource.connect(this.analyser);
         this.analyser.connect(this.audioContext.destination);
 
-        const offset = this.isPaused ? this.pausedAt - this.audioStartTime : 0;
+        const offset = this.state.isPaused ? 
+            this.timing.pausedAt - this.timing.startTime : 0;
+
         this.audioSource.start(0, offset);
+        this.audioSource.onended = this.handleAudioEnd;
 
-        this.audioSource.onended = this.handleAudioEnd.bind(this);
+        this.state.isPlaying = true;
+        this.state.isPaused = false;
+        this.timing.startTime = this.audioContext.currentTime - offset;
 
-        this.isPlaying = true;
-        this.isPaused = false;
-        this.isStopped = false;
-        this.audioStartTime = this.audioContext.currentTime - offset;
+        // Update UI
+        this.elements.playButton.innerHTML = '<i class="fas fa-pause"></i>';
+        
+        // Start visualization
         this.loop();
     }
 
     handleStop() {
-        if (this.isPlaying || this.isPaused) {
+        if (this.state.isPlaying || this.state.isPaused) {
             if (this.audioSource) {
                 this.audioSource.stop();
                 this.audioSource = null;
             }
-            this.isPlaying = false;
-            this.isPaused = false;
-            this.audioStartTime = 0;
-            this.pausedAt = 0;
-            this.isStopped = true;
 
+            // Reset state
+            this.state.isPlaying = false;
+            this.state.isPaused = false;
+            this.state.isStopped = true;
+            this.timing.startTime = 0;
+            this.timing.pausedAt = 0;
+
+            // Reset UI
+            this.elements.playButton.innerHTML = '<i class="fas fa-play"></i>';
+            
+            // Reset particles
             particlesJS('particles-js', particlesInitialConfig);
         }
     }
 
     handleAudioEnd() {
-        console.log("Track ended. Loading next track.");
-        this.currentTrackIndex = (this.currentTrackIndex + 1) % this.playlist.length;
-        this.loadTrack(this.currentTrackIndex);
-    }
-    
-
-    handleVolumeChange(event) {
-        this.audioPlayer.volume = event.target.value / 100;
+        if (!this.state.isStopped) {
+            this.playlist.currentIndex = (this.playlist.currentIndex + 1) % this.playlist.tracks.length;
+            this.loadTrack(this.playlist.currentIndex, true);
+        }
     }
 
+    handleFileChange(event) {
+        const file = event.target.files[0];
+        
+        if (!file.type.startsWith('audio/')) {
+            alert('Please select an audio file.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const audioBuffer = await this.audioContext.decodeAudioData(e.target.result);
+                this.buffer = audioBuffer;
+                await this.handlePlay();
+            } catch (error) {
+                console.error('Error decoding audio data:', error);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
 
     loop() {
-        if (!this.isStopped && this.isPlaying) {
+        if (!this.state.isStopped && this.state.isPlaying) {
             this.analyser.getByteFrequencyData(this.data);
-
-            let pJS = window.pJSDom[window.pJSDom.length - 1]?.pJS;
-
-            if (pJS?.particles?.array) {
-                let lowerHalfArray = this.data.slice(0, (this.data.length / 2) - 1);
-                let upperHalfArray = this.data.slice((this.data.length / 2) - 1, this.data.length - 1);
-
-                let lowerMax = this.max(lowerHalfArray);
-                let upperAvg = this.arrayAverage(upperHalfArray);
-
-                const lowerMaxNormalized = lowerMax / 256;
-                const speedMultiplier = upperAvg / 256;
-
-                for (let particle of pJS.particles.array) {
-                    this.adjustParticle(particle, lowerMaxNormalized, speedMultiplier);
-                }
-            }
-            requestAnimationFrame(this.loop.bind(this));
+            this.updateParticles();
+            requestAnimationFrame(this.loop);
         }
     }
 
+    updateParticles() {
+        const pJS = window.pJSDom[window.pJSDom.length - 1]?.pJS;
+        
+        if (pJS?.particles?.array) {
+            const midPoint = Math.floor(this.data.length / 2);
+            const lowerHalfArray = this.data.slice(0, midPoint);
+            const upperHalfArray = this.data.slice(midPoint);
+
+            const lowerMax = Math.max(...lowerHalfArray);
+            const upperAvg = this.calculateAverage(upperHalfArray);
+
+            const lowerMaxNormalized = lowerMax / 256;
+            const speedMultiplier = upperAvg / 256;
+
+            pJS.particles.array.forEach(particle => {
+                this.adjustParticle(particle, lowerMaxNormalized, speedMultiplier);
+            });
+        }
+    }
 
     adjustParticle(particle, lowerMaxNormalized, speedMultiplier) {
-        const sizeMultiplier = 10;
-        const baseSpeed = 2;
-        const maxSize = 20;
-        const minSize = 1;
-        const maxSpeed = 1;
+        const config = {
+            sizeMultiplier: 10,
+            baseSpeed: 2,
+            maxSize: 20,
+            minSize: 1,
+            maxSpeed: 1
+        };
 
-        particle.vx = baseSpeed * speedMultiplier;
-        particle.vy = baseSpeed * speedMultiplier;
+        particle.vx = config.baseSpeed * speedMultiplier;
+        particle.vy = config.baseSpeed * speedMultiplier;
 
         particle.vm = particle.vm || particle.radius;
-        particle.radius = particle.vm * (1 + lowerMaxNormalized * sizeMultiplier);
-        particle.radius = Math.min(maxSize, Math.max(minSize, particle.radius));
+        particle.radius = particle.vm * (1 + lowerMaxNormalized * config.sizeMultiplier);
+        particle.radius = Math.min(config.maxSize, Math.max(config.minSize, particle.radius));
 
-        let currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
-        if (currentSpeed > maxSpeed) {
-            particle.vx = (particle.vx / currentSpeed) * maxSpeed;
-            particle.vy = (particle.vy / currentSpeed) * maxSpeed;
+        const currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+        if (currentSpeed > config.maxSpeed) {
+            const scale = config.maxSpeed / currentSpeed;
+            particle.vx *= scale;
+            particle.vy *= scale;
         }
     }
 
-    arrayAverage(array) {
-        if (array.length === 0) return null;
-        let sum = array.reduce((previous, current) => current += previous);
-        return sum / array.length;
-    }
-
-    max(array) {
-        return Math.max.apply(null, array);
+    calculateAverage(array) {
+        return array.length ? 
+            array.reduce((sum, value) => sum + value, 0) / array.length : 0;
     }
 }
 
-
-
-window.onload = () => {
+// Initialize on window load
+window.addEventListener('load', () => {
     const visualizer = new AudioVisualizer();
-    // visualizer.setupFileListener();
-    // visualizer.setupButtonListeners();
-    // The autoPlay function is called inside the constructor after loading the default track
-};
-
-
-
-
-
-
-function setupButtonListeners() {
-    document.getElementById('playButton').addEventListener('click', visualizer.handlePlay);
-    document.getElementById('stopButton').addEventListener('click', visualizer.handleStop);
-}
-
-audioPlayer.addEventListener('ended', function () {
-    let pJS = window.pJSDom[window.pJSDom.length - 1].pJS;
-    particlesJS('particles-js', particlesInitialConfig);
-
-    console.log("The audio track has ended, particles behavior is reset.");
-    // do something when the audio track has ended...
-    if (isPlaying) {
-        isPlaying = false;
-    }
 });
