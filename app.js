@@ -173,7 +173,7 @@ class AudioVisualizer {
         this.visualizerSettings = {
             sensitivity: 1.0,
             particleCount: 50,
-            colorMode: 'spectrum', // 'spectrum', 'solid', 'gradient'
+            colorMode: 'spectrum',
             baseColor: '#ffffff',
             showStats: false
         };
@@ -191,17 +191,12 @@ class AudioVisualizer {
         this.handlePlay = this.handlePlay.bind(this);
         this.handleStop = this.handleStop.bind(this);
         this.handlePause = this.handlePause.bind(this);
-        this.handleFileChange = this.handleFileChange.bind(this);
         this.loop = this.loop.bind(this);
     
         // Load saved volume settings
         const savedVolume = localStorage.getItem('audioVolume');
         if (savedVolume !== null) {
             this.audioControls.volume = parseFloat(savedVolume);
-            const volumeControl = document.getElementById('volumeControl');
-            if (volumeControl) {
-                volumeControl.value = this.audioControls.volume * 100;
-            }
         }
     
         // Setup control panel
@@ -576,7 +571,6 @@ class AudioVisualizer {
 
     init() {
         // Audio processing setup
-        this.audioSource = null;
         this.data = new Uint8Array(this.analyser.frequencyBinCount);
         
         // Playback state
@@ -606,46 +600,22 @@ class AudioVisualizer {
     }
 
     setupUI() {
-        // Get DOM elements
-        this.elements = {
-            container: document.getElementById('particles-js'),
-            audioPlayer: document.getElementById('audioPlayer'),
-            playButton: document.getElementById('playButton'),
-            stopButton: document.getElementById('stopButton'),
-            fileInput: document.getElementById('audioFile'),
-            seekBar: document.getElementById('seekBar'),
-            volumeSlider: document.getElementById('volumeSlider')
-        };
-
-        // Initialize particles
         particlesJS('particles-js', particlesInitialConfig);
     }
 
-    setupEventListeners() {
-        // Bind methods
-        this.handlePlay = this.handlePlay.bind(this);
-        this.handleStop = this.handleStop.bind(this);
-        this.handleAudioEnd = this.handleAudioEnd.bind(this);
-        this.handleFileChange = this.handleFileChange.bind(this);
-        this.loop = this.loop.bind(this);
 
-        // Add event listeners
-        this.elements.playButton.addEventListener('click', this.handlePlay);
-        this.elements.stopButton.addEventListener('click', this.handleStop);
-        this.elements.fileInput.addEventListener('change', this.handleFileChange);
-        
-        // Optional volume control
-        if (this.elements.volumeSlider) {
-            this.elements.volumeSlider.addEventListener('input', (e) => {
-                const volume = e.target.value / 100;
-                if (this.audioSource) {
-                    const gainNode = this.audioContext.createGain();
-                    gainNode.gain.value = volume;
-                    this.audioSource.connect(gainNode);
-                    gainNode.connect(this.audioContext.destination);
+    setupEventListeners() {
+        // Only bind necessary event listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (this.state.isPlaying) {
+                    this.handlePause();
+                } else {
+                    this.handlePlay();
                 }
-            });
-        }
+            }
+        });
     }
 
     async loadTrack(trackIndex, autoPlay = true) {
@@ -765,7 +735,6 @@ class AudioVisualizer {
     }
 
     async handlePlay() {
-        // Resume AudioContext if it's suspended (browser autoplay policy)
         if (this.audioContext.state === 'suspended') {
             await this.audioContext.resume();
         }
@@ -781,25 +750,25 @@ class AudioVisualizer {
         this.audioSource.connect(this.analyser);
         this.analyser.connect(this.audioContext.destination);
 
-        // Set up the onended handler here
-        this.audioSource.onended = () => this.handleAudioEnd();
-
         const offset = this.state.isPaused ? 
             this.timing.pausedAt - this.timing.startTime : 0;
 
         this.audioSource.start(0, offset);
-        this.audioSource.onended = this.handleAudioEnd;
+        this.audioSource.onended = () => this.handleAudioEnd();
 
         this.state.isPlaying = true;
         this.state.isPaused = false;
         this.timing.startTime = this.audioContext.currentTime - offset;
 
-        // Update UI
-        this.elements.playButton.innerHTML = '<i class="fas fa-pause"></i>';
-        
-        // Start visualization
+        // Update UI in control panel
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        if (playPauseBtn) {
+            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        }
+
         this.loop();
     }
+
 
     handleStop() {
         if (this.state.isPlaying || this.state.isPaused) {
@@ -808,17 +777,18 @@ class AudioVisualizer {
                 this.audioSource = null;
             }
 
-            // Reset state
             this.state.isPlaying = false;
             this.state.isPaused = false;
             this.state.isStopped = true;
             this.timing.startTime = 0;
             this.timing.pausedAt = 0;
 
-            // Reset UI
-            this.elements.playButton.innerHTML = '<i class="fas fa-play"></i>';
-            
-            // Reset particles
+            // Update UI in control panel
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            if (playPauseBtn) {
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            }
+
             particlesJS('particles-js', particlesInitialConfig);
         }
     }
