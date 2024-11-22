@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,36 +11,19 @@
         input[type="range"] {
             @apply w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer;
         }
-
         input[type="range"]::-webkit-slider-thumb {
             @apply appearance-none w-4 h-4 rounded-full bg-white cursor-pointer;
         }
-
-        select,
-        input[type="color"] {
+        select, input[type="color"] {
             @apply bg-gray-700 text-white rounded p-1 w-full;
         }
-
         .control-panel {
             @apply backdrop-blur-sm bg-black bg-opacity-50;
         }
     </style>
 </head>
-
 <body class="bg-gradient-to-r from-blue-400 to-purple-500 flex justify-center items-center h-screen">
     <div id="particles-js" class="absolute w-full h-full"></div>
-    <div class="z-10 text-center">
-        <input type="file" id="audioFile" accept="audio/*" class="hidden" />
-        <audio id="audioPlayer" controls class="mt-5 hidden"></audio>
-
-        <button id="playButton"
-            class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded hidden">Play</button>
-        <button id="stopButton"
-            class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded hidden">Stop</button>
-
-
-    </div>
     <script src="app.js"></script>
 </body>
-
 </html>
