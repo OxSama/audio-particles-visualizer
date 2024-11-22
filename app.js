@@ -161,6 +161,9 @@ class AudioVisualizer {
     
         this.trackNames = ['STARGAZING', 'SICKO MODE'];
 
+        // set up seeker 
+        this.isSeeking = false;
+
         // Initialize state
         this.init();
     
@@ -342,6 +345,9 @@ class AudioVisualizer {
         const volumeControl = document.getElementById('volumeControl');
         const seekBar = document.getElementById('seekBar');
 
+
+        let seekInProgress = false;
+    
         // Play/Pause button
         playPauseBtn.addEventListener('click', () => {
             if (this.state.isPlaying) {
@@ -398,23 +404,34 @@ class AudioVisualizer {
             this.updateVolume();
         });
 
+        
+        seekBar.addEventListener('mousedown', () => {
+            seekInProgress = true;
+            this.isSeeking = true; 
+        });
+
         // Seek bar
         seekBar.addEventListener('input', (e) => {
             if (this.buffer) {
                 const time = (e.target.value / 100) * this.buffer.duration;
+                // Only update time display while dragging
+                this.updateTimeDisplay(time);
+            }
+        });
+
+        seekBar.addEventListener('mouseup', (e) => {
+            if (this.buffer) {
+                const time = (e.target.value / 100) * this.buffer.duration;
                 this.seekTo(time);
+                seekInProgress = false;
             }
         });
 
         // Update time displays
         setInterval(() => {
-            if (this.state.isPlaying && this.audioContext && this.timing.startTime) {
+            if (this.state.isPlaying && this.audioContext && this.timing.startTime && !seekInProgress) {
                 const currentTime = this.audioContext.currentTime - this.timing.startTime;
-                const duration = this.buffer ? this.buffer.duration : 0;
-                
-                document.getElementById('currentTime').textContent = this.formatTime(currentTime);
-                document.getElementById('duration').textContent = this.formatTime(duration);
-                document.getElementById('seekBar').value = (currentTime / duration) * 100;
+                this.updateTimeDisplay(currentTime);
             }
         }, 100);
     }
@@ -435,12 +452,56 @@ class AudioVisualizer {
     }
 
     seekTo(time) {
-        if (this.state.isPlaying) {
-            this.handleStop();
-            this.timing.startTime = this.audioContext.currentTime - time;
-            this.handlePlay();
+        if (!this.buffer) return;
+        
+        this.isSeeking = true; // Set seeking flag
+        const wasPlaying = this.state.isPlaying;
+        const newTime = Math.min(Math.max(0, time), this.buffer.duration);
+
+        if (this.audioSource) {
+            this.audioSource.stop();
+            this.audioSource.disconnect();
         }
+
+        this.audioSource = this.audioContext.createBufferSource();
+        this.audioSource.buffer = this.buffer;
+        this.audioSource.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
+        
+        // Update timing information
+        this.timing.startTime = this.audioContext.currentTime - newTime;
+        this.timing.pausedAt = 0;
+        
+        if (wasPlaying || !this.state.isPaused) {
+            this.audioSource.start(0, newTime);
+            this.audioSource.onended = () => {
+                this.isSeeking = false; // Reset seeking flag
+                this.handleAudioEnd();
+            };
+            this.state.isPlaying = true;
+            this.state.isPaused = false;
+            this.loop();
+        } else {
+            this.state.isPlaying = false;
+            this.state.isPaused = true;
+            this.timing.pausedAt = this.audioContext.currentTime;
+        }
+
+        // Update seek bar and time display immediately
+        this.updateTimeDisplay(newTime);
+        this.isSeeking = false; // Reset seeking flag
     }
+
+
+    updateTimeDisplay(currentTime) {
+        if (!this.buffer) return;
+        
+        const duration = this.buffer.duration;
+        document.getElementById('currentTime').textContent = this.formatTime(currentTime);
+        document.getElementById('duration').textContent = this.formatTime(duration);
+        document.getElementById('seekBar').value = (currentTime / duration) * 100;
+    }
+
 
     updateVolume() {
         if (this.audioSource) {
@@ -772,6 +833,7 @@ class AudioVisualizer {
 
     handleStop() {
         if (this.state.isPlaying || this.state.isPaused) {
+            this.isSeeking = false;
             if (this.audioSource) {
                 this.audioSource.stop();
                 this.audioSource = null;
@@ -794,7 +856,7 @@ class AudioVisualizer {
     }
 
     handleAudioEnd() {
-        if (!this.state.isStopped) {
+        if (!this.state.isStopped && !this.isSeeking) {
             if (this.audioControls.isLooping) {
                 this.handlePlay();
             } else {
