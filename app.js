@@ -358,3 +358,4 @@ class AudioVisualizer {
 window.addEventListener('load', () => {
     const visualizer = new AudioVisualizer();
 });
+
