@@ -277,6 +277,7 @@ class AudioVisualizer {
                             <span id="duration">0:00</span>
                         </div>
                     </div>
+                    <div class="track-info-container"></div>
                 </div>
 
                 <!-- Visualization Controls -->
