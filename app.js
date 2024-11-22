@@ -269,7 +269,7 @@ class AudioVisualizer {
                             <span id="currentTime">0:00</span>
                             <div class="flex-grow">
                                 <input type="range" id="seekBar" 
-                                       class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                       class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer hidden"
                                        min="0" max="100" value="0">
                             </div>
                             <span id="duration">0:00</span>
