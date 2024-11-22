@@ -174,6 +174,13 @@ class AudioVisualizer {
             baseColor: '#ffffff',
             showStats: false
         };
+
+        this.audioControls = {
+            volume: 1,
+            isMuted: false,
+            previousVolume: 1,
+            isLooping: false
+        };
         
         this.setupControlPanel();
 
@@ -183,50 +190,104 @@ class AudioVisualizer {
     setupControlPanel() {
         // Create control panel HTML
         const controlPanel = document.createElement('div');
-        controlPanel.className = 'fixed top-4 right-4 bg-black bg-opacity-50 p-4 rounded-lg text-white z-20';
+        controlPanel.className = 'fixed top-4 right-4 bg-black bg-opacity-50 p-4 rounded-lg text-white z-20 backdrop-blur-sm';
         controlPanel.innerHTML = `
             <div class="flex flex-col space-y-4">
-                <div>
-                    <label class="block text-sm font-medium">Visualization Mode</label>
-                    <select id="vizMode" class="mt-1 block w-full rounded-md bg-gray-700 border-transparent focus:border-gray-500 focus:bg-gray-600 focus:ring-0 text-sm">
-                        ${Object.entries(visualizationModes).map(([key, mode]) => 
-                            `<option value="${key}">${mode.name}</option>`
-                        ).join('')}
-                    </select>
+                <!-- Audio Controls Section -->
+                <div class="border-b border-gray-600 pb-4">
+                    <h3 class="text-sm font-medium mb-3">Audio Controls</h3>
+                    
+                    <!-- Playback Controls -->
+                    <div class="flex items-center justify-between mb-4">
+                        <button id="prevTrack" class="text-white hover:text-blue-400 transition-colors">
+                            <i class="fas fa-backward"></i>
+                        </button>
+                        <button id="playPauseBtn" class="text-white hover:text-blue-400 transition-colors text-xl">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button id="stopBtn" class="text-white hover:text-blue-400 transition-colors">
+                            <i class="fas fa-stop"></i>
+                        </button>
+                        <button id="nextTrack" class="text-white hover:text-blue-400 transition-colors">
+                            <i class="fas fa-forward"></i>
+                        </button>
+                        <button id="loopBtn" class="text-white hover:text-blue-400 transition-colors opacity-50">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+
+                    <!-- Volume Controls -->
+                    <div class="flex items-center space-x-2">
+                        <button id="muteBtn" class="text-white hover:text-blue-400 transition-colors">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                        <div class="flex-grow">
+                            <input type="range" id="volumeControl" 
+                                   class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                   min="0" max="100" value="100">
+                        </div>
+                    </div>
+
+                    <!-- Track Progress -->
+                    <div class="mt-2">
+                        <div class="flex items-center space-x-2 text-xs">
+                            <span id="currentTime">0:00</span>
+                            <div class="flex-grow">
+                                <input type="range" id="seekBar" 
+                                       class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                       min="0" max="100" value="0">
+                            </div>
+                            <span id="duration">0:00</span>
+                        </div>
+                    </div>
                 </div>
-                
+
+                <!-- Visualization Controls -->
                 <div>
-                    <label class="block text-sm font-medium">Sensitivity</label>
-                    <input type="range" id="sensitivity" min="0.1" max="2" step="0.1" value="1" 
-                           class="mt-1 block w-full">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium">Particle Count</label>
-                    <input type="range" id="particleCount" min="20" max="200" value="50" 
-                           class="mt-1 block w-full">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium">Color Mode</label>
-                    <select id="colorMode" class="mt-1 block w-full rounded-md bg-gray-700 border-transparent focus:border-gray-500 focus:bg-gray-600 focus:ring-0 text-sm">
-                        <option value="spectrum">Spectrum</option>
-                        <option value="solid">Solid</option>
-                        <option value="gradient">Gradient</option>
-                    </select>
-                </div>
-                
-                <div id="colorPicker" class="hidden">
-                    <label class="block text-sm font-medium">Base Color</label>
-                    <input type="color" id="baseColor" value="#ffffff" 
-                           class="mt-1 block w-full h-8 rounded-md">
-                </div>
-                
-                <div>
-                    <label class="flex items-center">
-                        <input type="checkbox" id="showStats" class="rounded bg-gray-700 border-transparent focus:border-gray-500 focus:bg-gray-600 focus:ring-0">
-                        <span class="ml-2 text-sm">Show Stats</span>
-                    </label>
+                    <h3 class="text-sm font-medium mb-3">Visualization</h3>
+                    <div>
+                        <label class="block text-sm font-medium">Mode</label>
+                        <select id="vizMode" class="mt-1 block w-full rounded-md bg-gray-700 border-transparent focus:border-gray-500 focus:bg-gray-600 focus:ring-0 text-sm">
+                            ${Object.entries(visualizationModes).map(([key, mode]) => 
+                                `<option value="${key}">${mode.name}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="block text-sm font-medium">Sensitivity</label>
+                        <input type="range" id="sensitivity" min="0.1" max="2" step="0.1" value="1" 
+                               class="mt-1 block w-full">
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="block text-sm font-medium">Particle Count</label>
+                        <input type="range" id="particleCount" min="20" max="200" value="50" 
+                               class="mt-1 block w-full">
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="block text-sm font-medium">Color Mode</label>
+                        <select id="colorMode" class="mt-1 block w-full rounded-md bg-gray-700 border-transparent focus:border-gray-500 focus:bg-gray-600 focus:ring-0 text-sm">
+                            <option value="spectrum">Spectrum</option>
+                            <option value="solid">Solid</option>
+                            <option value="gradient">Gradient</option>
+                        </select>
+                    </div>
+                    
+                    <div id="colorPicker" class="mt-3 hidden">
+                        <label class="block text-sm font-medium">Base Color</label>
+                        <input type="color" id="baseColor" value="#ffffff" 
+                               class="mt-1 block w-full h-8 rounded-md">
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="showStats" 
+                                   class="rounded bg-gray-700 border-transparent focus:border-gray-500 focus:bg-gray-600 focus:ring-0">
+                            <span class="ml-2 text-sm">Show Stats</span>
+                        </label>
+                    </div>
                 </div>
             </div>
         `;
@@ -235,6 +296,127 @@ class AudioVisualizer {
         
         // Add event listeners for controls
         this.setupControlListeners();
+        this.setupAudioControlListeners();
+    }
+
+    setupAudioControlListeners() {
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const prevTrack = document.getElementById('prevTrack');
+        const nextTrack = document.getElementById('nextTrack');
+        const loopBtn = document.getElementById('loopBtn');
+        const muteBtn = document.getElementById('muteBtn');
+        const volumeControl = document.getElementById('volumeControl');
+        const seekBar = document.getElementById('seekBar');
+
+        // Play/Pause button
+        playPauseBtn.addEventListener('click', () => {
+            if (this.state.isPlaying) {
+                this.handlePause();
+            } else {
+                this.handlePlay();
+            }
+            playPauseBtn.innerHTML = `<i class="fas fa-${this.state.isPlaying ? 'pause' : 'play'}"></i>`;
+        });
+
+        // Stop button
+        stopBtn.addEventListener('click', () => {
+            this.handleStop();
+            playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        });
+
+        // Previous track
+        prevTrack.addEventListener('click', () => {
+            this.playlist.currentIndex = (this.playlist.currentIndex - 1 + this.playlist.tracks.length) % this.playlist.tracks.length;
+            this.loadTrack(this.playlist.currentIndex, true);
+        });
+
+        // Next track
+        nextTrack.addEventListener('click', () => {
+            this.playlist.currentIndex = (this.playlist.currentIndex + 1) % this.playlist.tracks.length;
+            this.loadTrack(this.playlist.currentIndex, true);
+        });
+
+        // Loop button
+        loopBtn.addEventListener('click', () => {
+            this.audioControls.isLooping = !this.audioControls.isLooping;
+            loopBtn.style.opacity = this.audioControls.isLooping ? '1' : '0.5';
+        });
+
+        // Mute button
+        muteBtn.addEventListener('click', () => {
+            this.audioControls.isMuted = !this.audioControls.isMuted;
+            if (this.audioControls.isMuted) {
+                this.audioControls.previousVolume = this.audioControls.volume;
+                this.audioControls.volume = 0;
+                muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+            } else {
+                this.audioControls.volume = this.audioControls.previousVolume;
+                muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            }
+            this.updateVolume();
+        });
+
+        // Volume control
+        volumeControl.addEventListener('input', (e) => {
+            this.audioControls.volume = e.target.value / 100;
+            this.audioControls.isMuted = this.audioControls.volume === 0;
+            muteBtn.innerHTML = `<i class="fas fa-volume-${this.audioControls.volume === 0 ? 'mute' : 'up'}"></i>`;
+            this.updateVolume();
+        });
+
+        // Seek bar
+        seekBar.addEventListener('input', (e) => {
+            if (this.buffer) {
+                const time = (e.target.value / 100) * this.buffer.duration;
+                this.seekTo(time);
+            }
+        });
+
+        // Update time displays
+        setInterval(() => {
+            if (this.state.isPlaying && this.audioContext && this.timing.startTime) {
+                const currentTime = this.audioContext.currentTime - this.timing.startTime;
+                const duration = this.buffer ? this.buffer.duration : 0;
+                
+                document.getElementById('currentTime').textContent = this.formatTime(currentTime);
+                document.getElementById('duration').textContent = this.formatTime(duration);
+                document.getElementById('seekBar').value = (currentTime / duration) * 100;
+            }
+        }, 100);
+    }
+
+    formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    handlePause() {
+        if (this.state.isPlaying) {
+            this.audioSource.stop();
+            this.state.isPlaying = false;
+            this.state.isPaused = true;
+            this.timing.pausedAt = this.audioContext.currentTime;
+        }
+    }
+
+    seekTo(time) {
+        if (this.state.isPlaying) {
+            this.handleStop();
+            this.timing.startTime = this.audioContext.currentTime - time;
+            this.handlePlay();
+        }
+    }
+
+    updateVolume() {
+        if (this.audioSource) {
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = this.audioControls.volume;
+            this.audioSource.disconnect();
+            this.audioSource.connect(gainNode);
+            gainNode.connect(this.analyser);
+        }
     }
 
     setupControlListeners() {
@@ -501,8 +683,12 @@ class AudioVisualizer {
 
     handleAudioEnd() {
         if (!this.state.isStopped) {
-            this.playlist.currentIndex = (this.playlist.currentIndex + 1) % this.playlist.tracks.length;
-            this.loadTrack(this.playlist.currentIndex, true);
+            if (this.audioControls.isLooping) {
+                this.handlePlay();
+            } else {
+                this.playlist.currentIndex = (this.playlist.currentIndex + 1) % this.playlist.tracks.length;
+                this.loadTrack(this.playlist.currentIndex, true);
+            }
         }
     }
 
