@@ -155,17 +155,20 @@ class AudioVisualizer {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.analyser = this.audioContext.createAnalyser();
         this.analyser.fftSize = 2048;
-        
+    
+        // Initialize audio source as null
+        this.audioSource = null;  // Initialize this explicitly
+    
+        this.trackNames = ['STARGAZING', 'SICKO MODE'];
+
         // Initialize state
         this.init();
-        
+    
         // Setup UI and events
         this.setupUI();
         this.setupEventListeners();
-        
-        // Load initial track
-        this.loadTrack(this.playlist.currentIndex, false);
-
+    
+        // Set up visualization settings
         this.currentMode = 'particles';
         this.visualizerSettings = {
             sensitivity: 1.0,
@@ -174,18 +177,52 @@ class AudioVisualizer {
             baseColor: '#ffffff',
             showStats: false
         };
-
+    
+        // Set up audio controls
         this.audioControls = {
             volume: 1,
             isMuted: false,
             previousVolume: 1,
             isLooping: false
         };
-        
+    
+        // Bind event handlers
+        this.handleAudioEnd = this.handleAudioEnd.bind(this);
+        this.handlePlay = this.handlePlay.bind(this);
+        this.handleStop = this.handleStop.bind(this);
+        this.handlePause = this.handlePause.bind(this);
+        this.handleFileChange = this.handleFileChange.bind(this);
+        this.loop = this.loop.bind(this);
+    
+        // Load saved volume settings
+        const savedVolume = localStorage.getItem('audioVolume');
+        if (savedVolume !== null) {
+            this.audioControls.volume = parseFloat(savedVolume);
+            const volumeControl = document.getElementById('volumeControl');
+            if (volumeControl) {
+                volumeControl.value = this.audioControls.volume * 100;
+            }
+        }
+    
+        // Setup control panel
         this.setupControlPanel();
-
+    
+        // Load initial track (do this last)
+        this.loadTrack(this.playlist.currentIndex, false);
     }
 
+    updateVolume() {
+        if (this.audioSource) {
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = this.audioControls.volume;
+            this.audioSource.disconnect();
+            this.audioSource.connect(gainNode);
+            gainNode.connect(this.analyser);
+            
+            // Save volume setting
+            localStorage.setItem('audioVolume', this.audioControls.volume.toString());
+        }
+    }
 
     setupControlPanel() {
         // Create control panel HTML
@@ -612,17 +649,118 @@ class AudioVisualizer {
 
     async loadTrack(trackIndex, autoPlay = true) {
         try {
+            this.showLoadingIndicator(true); // Add loading indicator while track loads
+    
+            const trackNames = ['STARGAZING', 'SICKO MODE']; // Track names array
             const response = await fetch(this.playlist.tracks[trackIndex]);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const arrayBuffer = await response.arrayBuffer();
             const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
             
             this.buffer = audioBuffer;
+            
+            // Update track information display
+            this.updateTrackInfo(trackIndex, trackNames);
+            
             if (autoPlay && !this.state.isStopped) {
                 await this.handlePlay();
             }
         } catch (error) {
             console.error('Error loading track:', error);
+            this.showError('Failed to load track. Please try again.');
+        } finally {
+            this.showLoadingIndicator(false);
         }
+    }
+
+    updateTrackInfo(trackIndex, trackNames) {
+        const controlPanel = document.querySelector('.border-b.border-gray-600');
+        if (!controlPanel) return;
+    
+        // Create or update track info section
+        let trackInfo = document.querySelector('.track-info');
+        if (!trackInfo) {
+            trackInfo = document.createElement('div');
+            trackInfo.className = 'track-info text-white text-center mt-4';
+        }
+    
+        trackInfo.innerHTML = `
+            <div class="flex flex-col items-center space-y-1">
+                <p class="text-xs text-gray-300">Now Playing:</p>
+                <p class="font-bold text-sm">${trackNames[trackIndex]}</p>
+            </div>
+        `;
+    
+        // Add track info after the controls section if it doesn't exist
+        if (!document.querySelector('.track-info')) {
+            controlPanel.appendChild(trackInfo);
+        }
+    }
+
+
+    showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-lg z-50';
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 3000);
+    }
+
+    setupKeyboardControls() {
+        document.addEventListener('keydown', (e) => {
+            switch(e.key.toLowerCase()) {
+                case ' ':
+                    e.preventDefault();
+                    if (this.state.isPlaying) this.handlePause();
+                    else this.handlePlay();
+                    break;
+                case 'arrowright':
+                    e.preventDefault();
+                    this.playlist.currentIndex = (this.playlist.currentIndex + 1) % this.playlist.tracks.length;
+                    this.loadTrack(this.playlist.currentIndex, true);
+                    break;
+                case 'arrowleft':
+                    e.preventDefault();
+                    this.playlist.currentIndex = (this.playlist.currentIndex - 1 + this.playlist.tracks.length) % this.playlist.tracks.length;
+                    this.loadTrack(this.playlist.currentIndex, true);
+                    break;
+                case 'm':
+                    e.preventDefault();
+                    document.getElementById('muteBtn').click();
+                    break;
+            }
+        });
+    }
+
+    showLoadingIndicator(show = true) {
+        let loader = document.getElementById('audioLoader');
+        if (!loader && show) {
+            loader = document.createElement('div');
+            loader.id = 'audioLoader';
+            loader.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50';
+            loader.innerHTML = `
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            `;
+            document.body.appendChild(loader);
+        } else if (loader && !show) {
+            loader.remove();
+        }
+    }
+
+    setupCleanup() {
+        window.addEventListener('beforeunload', () => {
+            if (this.audioSource) {
+                this.audioSource.stop();
+                this.audioSource.disconnect();
+            }
+            if (this.audioContext) {
+                this.audioContext.close();
+            }
+        });
     }
 
     async handlePlay() {
@@ -641,6 +779,9 @@ class AudioVisualizer {
         this.audioSource.buffer = this.buffer;
         this.audioSource.connect(this.analyser);
         this.analyser.connect(this.audioContext.destination);
+
+        // Set up the onended handler here
+        this.audioSource.onended = () => this.handleAudioEnd();
 
         const offset = this.state.isPaused ? 
             this.timing.pausedAt - this.timing.startTime : 0;
