@@ -916,13 +916,6 @@ class AudioVisualizer {
     }
 
     adjustParticle(particle, lowerMaxNormalized, speedMultiplier) {
-        // const config = {
-        //     sizeMultiplier: 10,
-        //     baseSpeed: 2,
-        //     maxSize: 20,
-        //     minSize: 1,
-        //     maxSpeed: 1
-        // };
 
         const config = {
             sizeMultiplier: 10 * this.visualizerSettings.sensitivity,
