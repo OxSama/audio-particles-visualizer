@@ -17,7 +17,7 @@ A modular audio visualization system built with JavaScript.
 3. Start playing with the visualizer!
 
 ## Project Structure
-
+```bash
 .
 ├── index.html
 └── src/
@@ -25,6 +25,7 @@ A modular audio visualization system built with JavaScript.
     ├── core/       # Core functionality
     ├── ui/         # User interface
     └── utils/      # Utility functions
+```
 
 ## Usage
 Detailed usage instructions coming soon...
