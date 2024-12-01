@@ -237,7 +237,7 @@ export default class ControlPanel {
         toggleBtn.classList.add('hidden');
         
         // Prepare panel for animation
-        panel.style = "min-width:200px"
+        panel.style = "min-width:300px"
         panel.style.display = 'block';
         
         // Trigger reflow
