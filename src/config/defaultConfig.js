@@ -8,7 +8,13 @@ export const defaultParticleConfig = {
             }
         },
         "color": {
-            "value": ["#fc0303", "#fcdb03", "#039dfc", "#fc03ca", "#03fc20"]
+            "value": [
+            "#FF6B6B", // Coral
+            "#FFB067", // Light orange
+            "#FFE66D", // Yellow
+            "#4ECDC4", // Turquoise
+            "#45B7D1"  // Sky blue
+        ]
         },
         "shape": {
             "type": ["circle", "edge", "triangle", "polygon"],
