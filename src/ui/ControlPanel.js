@@ -2,13 +2,36 @@ import { controlPanelTemplate, trackInfoTemplate } from './templates.js';
 import { formatTime } from '../utils/timeUtils.js';
 import { visualizationModes, getAvailableModes } from '../config/visualModes.js';
 
+
+const ANIMATION = {
+    DURATION: 300,
+    CLASSES: {
+        SLIDE: 'control-panel-slide',
+        HIDDEN: 'hidden',
+        FADE: 'control-panel-fade'
+    }
+};
+
 export default class ControlPanel {
     constructor(audioCore, visualizer) {
         this.audioCore = audioCore;
         this.visualizer = visualizer;
         this.elements = {};
         this.isVisible = false;
+
+        this.boundEventHandlers = new Map();
         
+        // this.setupStyles();
+        // this.render();
+        // this.bindElements();
+        // this.setupEventListeners();
+        // this.populateVisualizationModes();
+        // this.initializeHiddenState();
+
+        this.init();
+    }
+
+    init() {
         this.setupStyles();
         this.render();
         this.bindElements();
@@ -18,54 +41,50 @@ export default class ControlPanel {
     }
 
     setupStyles() {
-        // Create and append styles for animations
         const styleSheet = document.createElement('style');
         styleSheet.textContent = `
             .control-panel-slide {
                 transform: translateX(0);
                 opacity: 1;
-                transition: all 0.3s ease-out;
-                position: fixed;  /* Ensure it stays fixed */
-                top: 1rem;      /* Match the original positioning */
+                transition: all ${ANIMATION.DURATION}ms ease-out;
+                position: fixed;
+                top: 1rem;
                 right: 1rem;
-                /* Remove any default margins that might affect positioning */
                 margin: 0;
             }
-    
+            
             .control-panel-slide.hidden {
-                transform: translateX(20px);  /* Smaller slide distance */
+                transform: translateX(20px);
                 opacity: 0;
-                pointer-events: none;  /* Prevent interaction while hidden */
+                pointer-events: none;
             }
-    
+            
             .toggle-button-slide {
                 transform: translateX(0);
                 opacity: 1;
-                transition: all 0.3s ease-out;
+                transition: all ${ANIMATION.DURATION}ms ease-out;
             }
-    
+            
             .toggle-button-slide.hidden {
-                transform: translateX(20px);  /* Match the panel slide distance */
+                transform: translateX(20px);
                 opacity: 0;
             }
-    
-            /* Subtle fade animation instead of bounce */
+            
             @keyframes fadeIn {
-                0% { 
+                from { 
                     transform: translateX(20px);
                     opacity: 0;
                 }
-                100% { 
+                to { 
                     transform: translateX(0);
                     opacity: 1;
                 }
             }
-    
+            
             .control-panel-fade {
-                animation: fadeIn 0.3s ease-out forwards;
+                animation: fadeIn ${ANIMATION.DURATION}ms ease-out forwards;
             }
-    
-            /* Hover effect for toggle button */
+            
             .toggle-button-slide:hover {
                 transform: scale(1.1);
                 transition: transform 0.2s ease-out;
@@ -75,20 +94,32 @@ export default class ControlPanel {
     }
 
     render() {
-        // Create toggle button - now visible by default
+        this.renderToggleButton();
+        this.renderControlPanel();
+    }
+
+
+    renderToggleButton() {
         const toggleBtn = document.createElement('button');
         toggleBtn.id = 'controlPanelToggle';
         toggleBtn.className = 'fixed top-4 right-4 bg-black bg-opacity-50 p-2 rounded-lg text-white z-20 hover:bg-opacity-70 backdrop-blur-sm toggle-button-slide';
         toggleBtn.innerHTML = '<i class="fas fa-cog text-xl"></i>';
         document.body.appendChild(toggleBtn);
-    
-        // Create control panel - now hidden by default
+    }
+
+    renderControlPanel() {
         const controlPanel = document.createElement('div');
         controlPanel.id = 'mainControlPanel';
         controlPanel.className = 'control-panel-slide fixed top-4 right-4 hidden';
-        controlPanel.style.display = 'none'; // Initially hidden
+        controlPanel.style.display = 'none';
         
-        const modifiedTemplate = controlPanelTemplate.replace(
+        const modifiedTemplate = this.getModifiedTemplate();
+        controlPanel.innerHTML = modifiedTemplate;
+        document.body.appendChild(controlPanel);
+    }
+
+    getModifiedTemplate() {
+        return controlPanelTemplate.replace(
             '<div class="flex flex-col space-y-4">',
             `<div class="flex flex-col space-y-4">
                 <div class="flex justify-end">
@@ -97,9 +128,6 @@ export default class ControlPanel {
                     </button>
                 </div>`
         );
-        
-        controlPanel.innerHTML = modifiedTemplate;
-        document.body.appendChild(controlPanel);
     }
 
     bindElements() {
@@ -143,6 +171,22 @@ export default class ControlPanel {
     }
 
     setupEventListeners() {
+
+        this.boundEventHandlers.set('transitionend', this.handleTransitionEnd.bind(this));
+        this.boundEventHandlers.set('keydown', this.handleKeyPress.bind(this));
+
+        // Add listeners with error handling
+        this.safeAddEventListener(
+            this.elements.controlPanel, 
+            'transitionend', 
+            this.boundEventHandlers.get('transitionend')
+        );
+
+        this.safeAddEventListener(
+            document,
+            'keydown',
+            this.boundEventHandlers.get('keydown')
+        );
 
         this.elements.controlPanel.addEventListener('transitionend', (e) => {
             if (e.propertyName === 'transform' && !this.isVisible) {
@@ -208,54 +252,71 @@ export default class ControlPanel {
     }
 
 
-    hidePanel() {
-        this.isVisible = false;
-        const panel = this.elements.controlPanel;
-        const toggleBtn = this.elements.toggleButton;
-
-        // Add hidden class to panel
-        panel.classList.add('hidden');
-        
-        // Show toggle button after panel slides out
-        setTimeout(() => {
-            toggleBtn.style.display = 'block';
-            toggleBtn.classList.remove('hidden');
-        }, 300); // Match the transition duration
-
-        // Actually hide the panel after animation completes
-        setTimeout(() => {
-            panel.style.display = 'none';
-        }, 300);
+    safeAddEventListener(element, event, handler) {
+        try {
+            if (element) {
+                element.addEventListener(event, handler);
+            }
+        } catch (error) {
+            console.error(`Error adding ${event} listener:`, error);
+        }
     }
 
-    showPanel() {
+    handleTransitionEnd(e) {
+        if (e.propertyName === 'transform' && !this.isVisible) {
+            this.elements.controlPanel.style.display = 'none';
+        }
+    }
+
+    handleKeyPress(e) {
+        if (e.key === 'Escape' && this.isVisible) {
+            this.hidePanel();
+        }
+    }
+
+    async hidePanel() {
+        this.isVisible = false;
+        const { controlPanel, toggleButton } = this.elements;
+
+        controlPanel.classList.add(ANIMATION.CLASSES.HIDDEN);
+        
+        await this.wait(ANIMATION.DURATION);
+        
+        toggleButton.style.display = 'block';
+        toggleButton.classList.remove(ANIMATION.CLASSES.HIDDEN);
+        
+        await this.wait(ANIMATION.DURATION);
+        
+        controlPanel.style.display = 'none';
+    }
+
+     showPanel() {
         this.isVisible = true;
-        const panel = this.elements.controlPanel;
-        const toggleBtn = this.elements.toggleButton;
-    
-        // Hide toggle button
-        toggleBtn.classList.add('hidden');
+        const { controlPanel, toggleButton } = this.elements;
+
+        toggleButton.classList.add(ANIMATION.CLASSES.HIDDEN);
         
-        // Prepare panel for animation
-        panel.style = "min-width:300px"
-        panel.style.display = 'block';
+        controlPanel.style.minWidth = '300px';
+        controlPanel.style.display = 'block';
         
-        // Trigger reflow
-        panel.offsetHeight;
+        // Force reflow
+        controlPanel.offsetHeight;
         
-        // Remove hidden class to trigger animation
-        panel.classList.remove('hidden');
+        controlPanel.classList.remove(ANIMATION.CLASSES.HIDDEN);
         
-        // Hide toggle button after animation
-        setTimeout(() => {
-            toggleBtn.style.display = 'none';
-        }, 300);
-    
-        // Use fade animation instead of bounce
-        panel.classList.add('control-panel-fade');
-        setTimeout(() => {
-            panel.classList.remove('control-panel-fade');
-        }, 300);
+        this.wait(ANIMATION.DURATION);
+        
+        toggleButton.style.display = 'none';
+        
+        controlPanel.classList.add(ANIMATION.CLASSES.FADE);
+        
+        this.wait(ANIMATION.DURATION);
+        
+        controlPanel.classList.remove(ANIMATION.CLASSES.FADE);
+    }
+
+    wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     initializeHiddenState() {
