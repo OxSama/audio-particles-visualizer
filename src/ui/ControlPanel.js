@@ -111,6 +111,14 @@ export default class ControlPanel {
             this.elements.colorPicker.style.display = 
                 e.target.value === 'solid' ? 'block' : 'none';
         });
+
+
+        this.elements.colorPalette = document.getElementById('colorPalette');
+        this.elements.colorPalette.addEventListener('change', (e) => {
+            this.visualizer.setColorPalette(e.target.value);
+        });
+
+        
     }
 
     updateTrackInfo(trackName) {

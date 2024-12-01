@@ -94,6 +94,17 @@ export const controlPanelTemplate = `
                         <span class="ml-2 text-sm">Show Stats</span>
                     </label>
                 </div>
+
+                <div class="mt-3">
+                    <label class="block text-sm font-medium">Color Palette</label>
+                    <select id="colorPalette" class="mt-1 block w-full rounded-md bg-gray-700 border-transparent focus:border-gray-500 focus:bg-gray-600 focus:ring-0 text-sm">
+                        <option value="neon">Neon Dreams</option>
+                        <option value="sunset">Sunset Vibes</option>
+                        <option value="aurora">Aurora Lights</option>
+                        <option value="retro">Retro Wave</option>
+                        <option value="galaxy">Galaxy</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
