@@ -7,6 +7,7 @@ export default class ControlPanel {
         this.audioCore = audioCore;
         this.visualizer = visualizer;
         this.elements = {};
+        this.isVisible = true;
         
         this.render();
         this.bindElements();
@@ -15,13 +16,38 @@ export default class ControlPanel {
     }
 
     render() {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'controlPanelToggle';
+        toggleBtn.className = 'fixed top-4 right-4 bg-black bg-opacity-50 p-2 rounded-lg text-white z-20 hover:bg-opacity-70 transition-all duration-200 backdrop-blur-sm hidden';
+        toggleBtn.innerHTML = '<i class="fas fa-cog text-xl"></i>';
+        document.body.appendChild(toggleBtn);
+
         const controlPanel = document.createElement('div');
-        controlPanel.innerHTML = controlPanelTemplate;
+        controlPanel.id = 'mainControlPanel';
+
+
+        const modifiedTemplate = controlPanelTemplate.replace(
+            '<div class="flex flex-col space-y-4">',
+            `<div class="flex flex-col space-y-4">
+                <div class="flex justify-end">
+                    <button id="closeControlPanel" class="hover:text-blue-400 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>`
+        );
+        
+
+        controlPanel.innerHTML = modifiedTemplate;
         document.body.appendChild(controlPanel);
     }
 
     bindElements() {
         this.elements = {
+
+            controlPanel: document.getElementById('mainControlPanel'),
+            toggleButton: document.getElementById('controlPanelToggle'),
+            closeButton: document.getElementById('closeControlPanel'),
+
             playPauseBtn: document.getElementById('playPauseBtn'),
             stopBtn: document.getElementById('stopBtn'),
             prevTrack: document.getElementById('prevTrack'),
@@ -56,14 +82,13 @@ export default class ControlPanel {
     }
 
     setupEventListeners() {
-        // Playback Controls
-        this.elements.playPauseBtn.addEventListener('click', () => {
-            if (this.audioCore.state.isPlaying) {
-                this.audioCore.handlePause();
-                this.elements.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-            } else {
-                this.audioCore.handlePlay();
-                this.elements.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+
+        this.elements.closeButton.addEventListener('click', () => this.hidePanel());
+        this.elements.toggleButton.addEventListener('click', () => this.showPanel());
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isVisible) {
+                this.hidePanel();
             }
         });
 
@@ -72,7 +97,6 @@ export default class ControlPanel {
             this.elements.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
         });
 
-        // Track Navigation
         this.elements.prevTrack.addEventListener('click', () => {
             this.audioCore.playlist.currentIndex = 
                 (this.audioCore.playlist.currentIndex - 1 + this.audioCore.playlist.tracks.length) 
@@ -87,13 +111,11 @@ export default class ControlPanel {
             this.audioCore.loadTrack(this.audioCore.playlist.currentIndex, true);
         });
 
-        // Volume Controls
         this.elements.volumeControl.addEventListener('input', (e) => {
             this.audioCore.audioControls.volume = e.target.value / 100;
             this.audioCore.updateVolume();
         });
 
-        // Visualization Controls
         this.elements.vizMode.addEventListener('change', (e) => {
             this.visualizer.setMode(e.target.value);
         });
@@ -112,13 +134,31 @@ export default class ControlPanel {
                 e.target.value === 'solid' ? 'block' : 'none';
         });
 
-
         this.elements.colorPalette = document.getElementById('colorPalette');
         this.elements.colorPalette.addEventListener('change', (e) => {
             this.visualizer.setColorPalette(e.target.value);
         });
+    }
 
-        
+
+    hidePanel() {
+        this.isVisible = false;
+        this.elements.controlPanel.style.display = 'none';
+        this.elements.toggleButton.style.display = 'block';
+    }
+
+    showPanel() {
+        this.isVisible = true;
+        this.elements.controlPanel.style.display = 'block';
+        this.elements.toggleButton.style.display = 'none';
+    }
+
+    togglePanel() {
+        if (this.isVisible) {
+            this.hidePanel();
+        } else {
+            this.showPanel();
+        }
     }
 
     updateTrackInfo(trackName) {

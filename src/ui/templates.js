@@ -110,6 +110,14 @@ export const controlPanelTemplate = `
     </div>
 `;
 
+
+// export const toggleButtonTemplate = `
+//     <button id="controlPanelToggle" class="fixed top-4 right-4 bg-black bg-opacity-50 p-2 rounded-lg text-white z-20 hover:bg-opacity-70 transition-all duration-200 backdrop-blur-sm hidden">
+//         <i class="fas fa-cog text-xl"></i>
+//     </button>
+// `;
+
+
 export const trackInfoTemplate = (trackName) => `
     <div class="flex flex-col items-center space-y-1">
         <p class="text-xs text-gray-300">Now Playing:</p>
