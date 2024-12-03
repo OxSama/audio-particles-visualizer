@@ -54,3 +54,4 @@ jobs:
         key: ${{ secrets.SERVER_SSH_KEY }}
         source: "dist/"
         target: "/home/ytztlxzp/audio-particles-visualizer.oxsama.com"
+        debug: true
