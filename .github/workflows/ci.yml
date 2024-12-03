@@ -53,4 +53,4 @@ jobs:
         username: ${{ secrets.SERVER_USERNAME }}
         key: ${{ secrets.SERVER_SSH_KEY }}
         source: "dist/"
-        target: "/home/ytztlxzp/particales.oxsama.com"
+        target: "/home/ytztlxzp/audio-particles-visualizer.oxsama.com"
