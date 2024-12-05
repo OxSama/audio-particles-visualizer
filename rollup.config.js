@@ -5,6 +5,20 @@ const terser = require('@rollup/plugin-terser');
 
 const packageJson = require('./package.json');
 
+const babelOptions = {
+  babelHelpers: 'runtime',
+  exclude: 'node_modules/**',
+  plugins: ['@babel/plugin-transform-runtime'],
+  presets: [
+    ['@babel/preset-env', {
+      targets: {
+        browsers: ['last 2 versions', 'not dead']
+      },
+      modules: false
+    }]
+  ]
+};
+
 module.exports = [
   // UMD build (for browsers)
   {
@@ -14,6 +28,7 @@ module.exports = [
         file: 'dist/audio-visualizer.min.js',
         format: 'umd',
         name: 'AudioVisualizer',
+        exports: 'named',
         plugins: [terser()],
         sourcemap: true
       },
@@ -21,29 +36,16 @@ module.exports = [
         file: 'dist/audio-visualizer.js',
         format: 'umd',
         name: 'AudioVisualizer',
+        exports: 'named',
         sourcemap: true
       }
     ],
     plugins: [
-      resolve(),
+      resolve({
+        browser: true
+      }),
       commonjs(),
-      babel({
-        babelHelpers: 'runtime',
-        exclude: 'node_modules/**',
-        presets: [
-          ['@babel/preset-env', {
-            targets: {
-              browsers: ['last 2 versions', 'not dead']
-            }
-          }],
-        ],
-        plugins: [
-            ['@babel/plugin-transform-runtime', {
-              useESModules: true, // Enables tree-shaking
-              regenerator: true   // Supports async/await
-            }]
-          ]
-      })
+      babel(babelOptions)
     ]
   },
   // ESM build (for bundlers)
@@ -57,25 +59,11 @@ module.exports = [
       }
     ],
     plugins: [
-      resolve(),
+      resolve({
+        browser: true
+      }),
       commonjs(),
-      babel({
-        babelHelpers: 'runtime',
-        exclude: 'node_modules/**',
-        presets: [
-          ['@babel/preset-env', {
-            targets: {
-              browsers: ['last 2 versions', 'not dead']
-            }
-          }]
-        ],
-        plugins: [
-          ['@babel/plugin-transform-runtime', {
-            useESModules: true,
-            regenerator: true
-          }]
-        ]
-      })
+      babel(babelOptions)
     ]
   }
 ];
