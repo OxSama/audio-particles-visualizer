@@ -38,7 +38,8 @@ export default class AudioCore {
                 'https://dl.dropboxusercontent.com/scl/fi/8km1bqcn5352t7ep4sapd/01.-STARGAZING.mp3?rlkey=mhdfkxqqm2lypqzq4w2xsnwrw&st=fb8lu7or&dl=0',
                 'https://dl.dropboxusercontent.com/scl/fi/eyhxveg8ed9o89l9qvhg2/03.-SICKO-MODE.mp3?rlkey=o42gwx5ndu4tkawnjfku1cn5f&st=q6d6z2yb&dl=0'
             ],
-            currentIndex: 0
+            currentIndex: 0,
+            currentFile: null  // Add this to handle uploaded files
         };
 
         // Frequency data array
@@ -57,6 +58,23 @@ export default class AudioCore {
         this.loadSavedVolume();
     }
 
+    async loadFile(file) {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            this.buffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            this.playlist.currentFile = file;
+            return true;
+        } catch (error) {
+            console.error('Error loading file:', error);
+            return false;
+        }
+    }
+    
+    clearUploadedFile() {
+        this.playlist.currentFile = null;
+        this.buffer = null;
+    }
+
     loadSavedVolume() {
         const savedVolume = localStorage.getItem('audioVolume');
         if (savedVolume !== null) {
@@ -64,21 +82,25 @@ export default class AudioCore {
         }
     }
 
+    // Modified loadTrack to handle both URLs and files
     async loadTrack(trackIndex, autoPlay = true) {
+        // If there's an uploaded file, use that instead of playlist
+        if (this.playlist.currentFile) {
+            return await this.loadFile(this.playlist.currentFile);
+        }
+
+        // Otherwise use the playlist tracks
         try {
             const response = await fetch(this.playlist.tracks[trackIndex]);
-            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
             const arrayBuffer = await response.arrayBuffer();
             this.buffer = await this.audioContext.decodeAudioData(arrayBuffer);
             
             if (autoPlay && !this.state.isStopped) {
                 await this.handlePlay();
             }
-
             return true;
         } catch (error) {
             console.error('Error loading track:', error);
@@ -137,11 +159,13 @@ export default class AudioCore {
         }
     }
 
+    // Modified handleAudioEnd to handle both modes
     handleAudioEnd() {
         if (!this.state.isStopped) {
             if (this.audioControls.isLooping) {
                 this.handlePlay();
-            } else {
+            } else if (!this.playlist.currentFile) {
+                // Only cycle through playlist if not playing an uploaded file
                 this.playlist.currentIndex = (this.playlist.currentIndex + 1) % this.playlist.tracks.length;
                 this.loadTrack(this.playlist.currentIndex, true);
             }
