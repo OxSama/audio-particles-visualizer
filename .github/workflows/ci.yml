@@ -9,49 +9,65 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
         
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Run tests
-      run: npm test
-      
-    - name: Build
-      run: npm run build
+      - name: Run tests
+        run: npm test
+        
+      - name: Build
+        run: npm run build
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: dist
-        path: dist/
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy
+          cp -r dist/* deploy/
+          cp -r demo/* deploy/
+          mv deploy/index.html deploy/demo.html  # Rename demo's index.html
+          
+      - name: Upload deployment package
+        uses: actions/upload-artifact@v3
+        with:
+          name: deploy-package
+          path: deploy/
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-
+    
     steps:
-    - name: Download build artifacts
-      uses: actions/download-artifact@v3
-      with:
-        name: dist
-        path: dist/
+      - name: Download deployment package
+        uses: actions/download-artifact@v3
+        with:
+          name: deploy-package
+          path: deploy/
 
-    - name: Deploy to server
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USERNAME }}
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        source: "dist/"
-        target: "/home/ytztlxzp/audio-particles-visualizer.oxsama.com"
-        debug: true
+      - name: Deploy to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "deploy/*"
+          target: "/home/ytztlxzp/audio-particles-visualizer.oxsama.com"
+          strip_components: 1
+          debug: true
+
+      - name: Set permissions
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            chmod -R 755 /home/ytztlxzp/audio-particles-visualizer.oxsama.com
