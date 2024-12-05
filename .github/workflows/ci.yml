@@ -70,3 +70,8 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             chmod -R 755 /home/ytztlxzp/audio-particles-visualizer.oxsama.com
+            cd /home/ytztlxzp/audio-particles-visualizer.oxsama.com
+            echo 'DirectoryIndex index.html index.php' > .htaccess
+            echo 'Options -MultiViews' >> .htaccess
+            chmod 644 index.html
+            chmod 644 .htaccess
