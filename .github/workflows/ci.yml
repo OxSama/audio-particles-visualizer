@@ -32,7 +32,7 @@ jobs:
           mkdir -p deploy
           cp -r dist/* deploy/
           cp -r demo/* deploy/
-          mv deploy/index.html 
+          mv deploy/index.html deploy/index.html 
           
       - name: Upload deployment package
         uses: actions/upload-artifact@v3
