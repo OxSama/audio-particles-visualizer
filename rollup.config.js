@@ -1,69 +1,72 @@
-const resolve = require('@rollup/plugin-node-resolve');
-const commonjs = require('@rollup/plugin-commonjs');
-const babel = require('@rollup/plugin-babel');
-const terser = require('@rollup/plugin-terser');
+const resolve = require("@rollup/plugin-node-resolve");
+const commonjs = require("@rollup/plugin-commonjs");
+const babel = require("@rollup/plugin-babel");
+const terser = require("@rollup/plugin-terser");
 
-const packageJson = require('./package.json');
+const packageJson = require("./package.json");
 
 const babelOptions = {
-  babelHelpers: 'runtime',
-  exclude: 'node_modules/**',
-  plugins: ['@babel/plugin-transform-runtime'],
+  babelHelpers: "runtime",
+  exclude: "node_modules/**",
+  plugins: ["@babel/plugin-transform-runtime"],
   presets: [
-    ['@babel/preset-env', {
-      targets: {
-        browsers: ['last 2 versions', 'not dead']
+    [
+      "@babel/preset-env",
+      {
+        targets: {
+          browsers: ["last 2 versions", "not dead"],
+        },
+        modules: false,
       },
-      modules: false
-    }]
-  ]
+    ],
+  ],
 };
 
 module.exports = [
   // UMD build (for browsers)
   {
-    input: 'src/index.js',
+    input: "src/index.js",
     output: [
       {
-        file: 'dist/audio-visualizer.min.js',
-        format: 'umd',
-        name: 'AudioVisualizer',
-        exports: 'named',
+        file: "dist/audio-visualizer.min.js",
+        format: "umd",
+        name: "AudioVisualizer",
+        exports: "named",
         plugins: [terser()],
-        sourcemap: true
+        sourcemap: true,
       },
       {
-        file: 'dist/audio-visualizer.js',
-        format: 'umd',
-        name: 'AudioVisualizer',
-        exports: 'named',
-        sourcemap: true
-      }
+        file: "dist/audio-visualizer.js",
+        format: "umd",
+        name: "AudioVisualizer",
+        exports: "named",
+        sourcemap: true,
+      },
     ],
     plugins: [
       resolve({
-        browser: true
+        browser: true,
       }),
       commonjs(),
-      babel(babelOptions)
-    ]
+      babel(babelOptions),
+    ],
   },
   // ESM build (for bundlers)
   {
-    input: 'src/index.js',
+    input: "src/index.js",
     output: [
       {
         file: packageJson.module,
-        format: 'esm',
-        sourcemap: true
-      }
+        format: "esm",
+        sourcemap: true,
+      },
     ],
     plugins: [
       resolve({
-        browser: true
+        browser: true,
       }),
       commonjs(),
-      babel(babelOptions)
-    ]
-  }
+      babel(babelOptions),
+    ],
+  },
 ];

@@ -1,37 +1,37 @@
 {
-    "name": "audio-particles-visualizer",
-    "version": "1.0.0",
-    "description": "A modular audio visualization system built with JavaScript",
-    "main": "dist/index.js",
-    "module": "dist/index.esm.js",
-    "unpkg": "dist/audio-visualizer.min.js",
-    "scripts": {
-        "build": "NODE_ENV=production rollup -c",
-        "dev": "rollup -c -w",
-        "test": "jest",
-        "test:watch": "jest --watch",
-        "prepublishOnly": "npm run build"
-    },
-    "files": [
-        "dist",
-        "src"
-    ],
-    "keywords": [
-        "audio",
-        "visualization",
-        "particles",
-        "web audio",
-        "music",
-        "sound",
-        "canvas"
-    ],
-    "author": "Your Name",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/OxSama/audio-particles-visualizer.git"
-    },
-    "devDependencies": {
+  "name": "audio-particles-visualizer",
+  "version": "1.0.0",
+  "description": "A modular audio visualization system built with JavaScript",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "unpkg": "dist/audio-visualizer.min.js",
+  "scripts": {
+    "build": "NODE_ENV=production rollup -c",
+    "dev": "rollup -c -w",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "keywords": [
+    "audio",
+    "visualization",
+    "particles",
+    "web audio",
+    "music",
+    "sound",
+    "canvas"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OxSama/audio-particles-visualizer.git"
+  },
+  "devDependencies": {
     "@babel/core": "^7.22.0",
     "@babel/plugin-transform-runtime": "^7.22.0",
     "@babel/preset-env": "^7.22.0",

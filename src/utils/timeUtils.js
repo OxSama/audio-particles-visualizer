@@ -4,9 +4,9 @@
  * @returns {string} Formatted time string (MM:SS)
  */
 export function formatTime(seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
 /**
@@ -15,8 +15,8 @@ export function formatTime(seconds) {
  * @returns {number} Time in seconds
  */
 export function timeToSeconds(timeString) {
-    const [minutes, seconds] = timeString.split(':').map(Number);
-    return minutes * 60 + seconds;
+  const [minutes, seconds] = timeString.split(":").map(Number);
+  return minutes * 60 + seconds;
 }
 
 /**
@@ -26,8 +26,8 @@ export function timeToSeconds(timeString) {
  * @returns {number} Percentage (0-100)
  */
 export function calculateProgress(currentTime, duration) {
-    if (!duration) return 0;
-    return (currentTime / duration) * 100;
+  if (!duration) return 0;
+  return (currentTime / duration) * 100;
 }
 
 /**
@@ -37,7 +37,7 @@ export function calculateProgress(currentTime, duration) {
  * @returns {number} Time in seconds
  */
 export function percentageToTime(percentage, duration) {
-    return (percentage / 100) * duration;
+  return (percentage / 100) * duration;
 }
 
 /**
@@ -46,13 +46,13 @@ export function percentageToTime(percentage, duration) {
  * @returns {string} Formatted duration string
  */
 export function formatDuration(seconds) {
-    if (seconds < 60) {
-        return `${Math.floor(seconds)}s`;
-    } else if (seconds < 3600) {
-        return formatTime(seconds);
-    } else {
-        const hours = Math.floor(seconds / 3600);
-        const remainingSeconds = seconds % 3600;
-        return `${hours}:${formatTime(remainingSeconds)}`;
-    }
+  if (seconds < 60) {
+    return `${Math.floor(seconds)}s`;
+  } else if (seconds < 3600) {
+    return formatTime(seconds);
+  } else {
+    const hours = Math.floor(seconds / 3600);
+    const remainingSeconds = seconds % 3600;
+    return `${hours}:${formatTime(remainingSeconds)}`;
+  }
 }

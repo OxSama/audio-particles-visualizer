@@ -2,37 +2,37 @@ name: CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
-          
+          node-version: "18"
+          cache: "npm"
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Run tests
         run: npm test
-        
+
       - name: Build
         run: npm run build
-        
+
       - name: Create deployment package
         run: |
           mkdir -p deploy
           cp -r dist/* deploy/
           cp -r demo/* deploy/
-          
+
       - name: Upload deployment package
         uses: actions/upload-artifact@v3
         with:
@@ -43,14 +43,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
       - name: Download deployment package
         uses: actions/download-artifact@v3
         with:
           name: deploy-package
           path: deploy/
-          
+
       - name: Deploy to server
         uses: appleboy/scp-action@master
         with:
@@ -61,7 +61,7 @@ jobs:
           target: "/home/ytztlxzp/audio-particles-visualizer.oxsama.com/public_html"
           strip_components: 1
           debug: true
-          
+
       - name: Configure server
         uses: appleboy/ssh-action@master
         with:

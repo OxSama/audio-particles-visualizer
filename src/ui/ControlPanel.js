@@ -170,12 +170,134 @@ export default class ControlPanel {
         }
     }
 
-    setupEventListeners() {
+    // setupEventListeners() {
 
+    //     this.boundEventHandlers.set('transitionend', this.handleTransitionEnd.bind(this));
+    //     this.boundEventHandlers.set('keydown', this.handleKeyPress.bind(this));
+
+    //     // Add listeners with error handling
+    //     this.safeAddEventListener(
+    //         this.elements.controlPanel, 
+    //         'transitionend', 
+    //         this.boundEventHandlers.get('transitionend')
+    //     );
+
+    //     this.safeAddEventListener(
+    //         document,
+    //         'keydown',
+    //         this.boundEventHandlers.get('keydown')
+    //     );
+
+    //     this.elements.controlPanel.addEventListener('transitionend', (e) => {
+    //         if (e.propertyName === 'transform' && !this.isVisible) {
+    //             this.elements.controlPanel.style.display = 'none';
+    //         }
+    //     });
+
+    //     this.elements.closeButton.addEventListener('click', () => this.hidePanel());
+    //     this.elements.toggleButton.addEventListener('click', () => this.showPanel());
+
+    //     document.addEventListener('keydown', (e) => {
+    //         if (e.key === 'Escape' && this.isVisible) {
+    //             this.hidePanel();
+    //         }
+    //     });
+
+    //     this.elements.playPauseBtn.addEventListener('click', async () => {
+    //         if (this.audioCore.state.isPlaying) {
+    //             this.audioCore.handlePause();
+    //             this.elements.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+    //         } else {
+    //             await this.audioCore.handlePlay();
+    //             this.elements.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+    //         }
+    //     });
+
+    //     this.elements.loopBtn.addEventListener('click', () => {
+    //         this.audioCore.audioControls.isLooping = !this.audioCore.audioControls.isLooping;
+    //         this.elements.loopBtn.style.opacity = this.audioCore.audioControls.isLooping ? '1' : '0.5';
+    //     });
+
+    //     this.elements.muteBtn.addEventListener('click', () => {
+    //         if (this.audioCore.audioControls.isMuted) {
+    //             this.audioCore.audioControls.volume = this.audioCore.audioControls.previousVolume;
+    //             this.elements.muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+    //         } else {
+    //             this.audioCore.audioControls.previousVolume = this.audioCore.audioControls.volume;
+    //             this.audioCore.audioControls.volume = 0;
+    //             this.elements.muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+    //         }
+    //         this.audioCore.audioControls.isMuted = !this.audioCore.audioControls.isMuted;
+    //         this.elements.volumeControl.value = this.audioCore.audioControls.volume * 100;
+    //         this.audioCore.updateVolume();
+    //     });
+
+    //     this.elements.prevTrack.addEventListener('click', async () => {
+    //         const newIndex = (this.audioCore.playlist.currentIndex - 1 + this.audioCore.playlist.tracks.length) 
+    //             % this.audioCore.playlist.tracks.length;
+    //         await this.audioCore.loadTrack(newIndex, true);
+    //         this.elements.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+    //     });
+
+    //     this.elements.nextTrack.addEventListener('click', async () => {
+    //         const newIndex = (this.audioCore.playlist.currentIndex + 1) % this.audioCore.playlist.tracks.length;
+    //         await this.audioCore.loadTrack(newIndex, true);
+    //         this.elements.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+    //     });
+
+    //     this.elements.stopBtn.addEventListener('click', () => {
+    //         this.audioCore.handleStop();
+    //         this.elements.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+    //     });
+
+    //     this.elements.prevTrack.addEventListener('click', () => {
+    //         this.audioCore.playlist.currentIndex = 
+    //             (this.audioCore.playlist.currentIndex - 1 + this.audioCore.playlist.tracks.length) 
+    //             % this.audioCore.playlist.tracks.length;
+    //         this.audioCore.loadTrack(this.audioCore.playlist.currentIndex, true);
+    //     });
+
+    //     this.elements.nextTrack.addEventListener('click', () => {
+    //         this.audioCore.playlist.currentIndex = 
+    //             (this.audioCore.playlist.currentIndex + 1) 
+    //             % this.audioCore.playlist.tracks.length;
+    //         this.audioCore.loadTrack(this.audioCore.playlist.currentIndex, true);
+    //     });
+
+    //     this.elements.volumeControl.addEventListener('input', (e) => {
+    //         this.audioCore.audioControls.volume = e.target.value / 100;
+    //         this.audioCore.updateVolume();
+    //     });
+
+    //     this.elements.vizMode.addEventListener('change', (e) => {
+    //         this.visualizer.setMode(e.target.value);
+    //     });
+
+    //     this.elements.sensitivity.addEventListener('input', (e) => {
+    //         this.visualizer.updateSettings({ sensitivity: parseFloat(e.target.value) });
+    //     });
+
+    //     this.elements.particleCount.addEventListener('input', (e) => {
+    //         this.visualizer.updateSettings({ particleCount: parseInt(e.target.value) });
+    //     });
+
+    //     this.elements.colorMode.addEventListener('change', (e) => {
+    //         this.visualizer.updateSettings({ colorMode: e.target.value });
+    //         this.elements.colorPicker.style.display = 
+    //             e.target.value === 'solid' ? 'block' : 'none';
+    //     });
+
+    //     this.elements.colorPalette = document.getElementById('colorPalette');
+    //     this.elements.colorPalette.addEventListener('change', (e) => {
+    //         this.visualizer.setColorPalette(e.target.value);
+    //     });
+    // }
+
+    setupEventListeners() {
+        // Panel transition and keyboard handlers
         this.boundEventHandlers.set('transitionend', this.handleTransitionEnd.bind(this));
         this.boundEventHandlers.set('keydown', this.handleKeyPress.bind(this));
 
-        // Add listeners with error handling
         this.safeAddEventListener(
             this.elements.controlPanel, 
             'transitionend', 
@@ -188,6 +310,7 @@ export default class ControlPanel {
             this.boundEventHandlers.get('keydown')
         );
 
+        // Panel control handlers
         this.elements.controlPanel.addEventListener('transitionend', (e) => {
             if (e.propertyName === 'transform' && !this.isVisible) {
                 this.elements.controlPanel.style.display = 'none';
@@ -197,58 +320,130 @@ export default class ControlPanel {
         this.elements.closeButton.addEventListener('click', () => this.hidePanel());
         this.elements.toggleButton.addEventListener('click', () => this.showPanel());
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isVisible) {
-                this.hidePanel();
+        // Audio playback control handlers
+        this.setupPlaybackControls();
+        
+        // Audio track navigation handlers
+        this.setupTrackNavigation();
+        
+        // Volume control handlers
+        this.setupVolumeControls();
+        
+        // Visualization control handlers
+        this.setupVisualizationControls();
+    }
+
+    setupPlaybackControls() {
+        // Play/Pause button
+        this.elements.playPauseBtn.addEventListener('click', async () => {
+            try {
+                if (this.audioCore.state.isPlaying) {
+                    this.audioCore.handlePause();
+                    this.elements.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                } else {
+                    await this.audioCore.handlePlay();
+                    this.elements.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                }
+            } catch (error) {
+                console.error('Error handling play/pause:', error);
             }
         });
 
+        // Stop button
         this.elements.stopBtn.addEventListener('click', () => {
             this.audioCore.handleStop();
             this.elements.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
         });
 
-        this.elements.prevTrack.addEventListener('click', () => {
-            this.audioCore.playlist.currentIndex = 
-                (this.audioCore.playlist.currentIndex - 1 + this.audioCore.playlist.tracks.length) 
-                % this.audioCore.playlist.tracks.length;
-            this.audioCore.loadTrack(this.audioCore.playlist.currentIndex, true);
+        // Loop button
+        this.elements.loopBtn.addEventListener('click', () => {
+            this.audioCore.audioControls.isLooping = !this.audioCore.audioControls.isLooping;
+            this.elements.loopBtn.style.opacity = this.audioCore.audioControls.isLooping ? '1' : '0.5';
+        });
+    }
+
+    setupTrackNavigation() {
+        // Previous track
+        this.elements.prevTrack.addEventListener('click', async () => {
+            try {
+                const newIndex = (this.audioCore.playlist.currentIndex - 1 + this.audioCore.playlist.tracks.length) 
+                    % this.audioCore.playlist.tracks.length;
+                const success = await this.audioCore.loadTrack(newIndex, true);
+                if (success) {
+                    this.elements.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                }
+            } catch (error) {
+                console.error('Error loading previous track:', error);
+            }
         });
 
-        this.elements.nextTrack.addEventListener('click', () => {
-            this.audioCore.playlist.currentIndex = 
-                (this.audioCore.playlist.currentIndex + 1) 
-                % this.audioCore.playlist.tracks.length;
-            this.audioCore.loadTrack(this.audioCore.playlist.currentIndex, true);
+        // Next track
+        this.elements.nextTrack.addEventListener('click', async () => {
+            try {
+                const newIndex = (this.audioCore.playlist.currentIndex + 1) 
+                    % this.audioCore.playlist.tracks.length;
+                const success = await this.audioCore.loadTrack(newIndex, true);
+                if (success) {
+                    this.elements.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                }
+            } catch (error) {
+                console.error('Error loading next track:', error);
+            }
+        });
+    }
+
+    setupVolumeControls() {
+        // Mute button
+        this.elements.muteBtn.addEventListener('click', () => {
+            if (this.audioCore.audioControls.isMuted) {
+                this.audioCore.audioControls.volume = this.audioCore.audioControls.previousVolume;
+                this.elements.muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            } else {
+                this.audioCore.audioControls.previousVolume = this.audioCore.audioControls.volume;
+                this.audioCore.audioControls.volume = 0;
+                this.elements.muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+            }
+            this.audioCore.audioControls.isMuted = !this.audioCore.audioControls.isMuted;
+            this.elements.volumeControl.value = this.audioCore.audioControls.volume * 100;
+            this.audioCore.updateVolume();
         });
 
+        // Volume slider
         this.elements.volumeControl.addEventListener('input', (e) => {
             this.audioCore.audioControls.volume = e.target.value / 100;
             this.audioCore.updateVolume();
         });
+    }
 
+    setupVisualizationControls() {
+        // Visualization mode
         this.elements.vizMode.addEventListener('change', (e) => {
             this.visualizer.setMode(e.target.value);
         });
 
+        // Sensitivity control
         this.elements.sensitivity.addEventListener('input', (e) => {
             this.visualizer.updateSettings({ sensitivity: parseFloat(e.target.value) });
         });
 
+        // Particle count control
         this.elements.particleCount.addEventListener('input', (e) => {
             this.visualizer.updateSettings({ particleCount: parseInt(e.target.value) });
         });
 
+        // Color mode control
         this.elements.colorMode.addEventListener('change', (e) => {
             this.visualizer.updateSettings({ colorMode: e.target.value });
             this.elements.colorPicker.style.display = 
                 e.target.value === 'solid' ? 'block' : 'none';
         });
 
-        this.elements.colorPalette = document.getElementById('colorPalette');
-        this.elements.colorPalette.addEventListener('change', (e) => {
-            this.visualizer.setColorPalette(e.target.value);
-        });
+        // Color palette control
+        if (this.elements.colorPalette) {
+            this.elements.colorPalette.addEventListener('change', (e) => {
+                this.visualizer.setColorPalette(e.target.value);
+            });
+        }
     }
 
 
