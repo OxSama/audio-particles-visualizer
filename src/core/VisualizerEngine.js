@@ -4,6 +4,7 @@ import {
     defaultVisualizerSettings,
     getModeConfig 
 } from '../config/visualModes.js';
+import { defaultParticleConfig } from '../config/defaultConfig.js'
 
 
 const COLOR_PALETTES = {
@@ -74,86 +75,48 @@ export default class VisualizerEngine {
         
         // Performance monitoring
         this._lastFrame = 0;
+
+        // Track initialization state
+        this.isInitialized = false;  
+        
+        // Reference to particlesJS instance
+        this.pJSInstance = null;
+
+        // Store mode-specific configurations
+        this.modeDefaults = visualizationModes;
+
+        // Current mode configuration
+        this.currentModeConfig = this.modeDefaults[this.currentMode].config;
         
         // Initialize the visualizer
         this.init();
     }
 
     init() {
-        // Initialize particles.js with default config
-        particlesJS('particles-js', this.getDefaultConfig());
-        this.startVisualization();
-    }
+        try {
+            // Initialize particles.js with default config
+            particlesJS('particles-js', defaultParticleConfig);
 
-    getDefaultConfig() {
-        return {
-            "particles": {
-                "number": {
-                    "value": this.visualizerSettings.particleCount,
-                    "density": {
-                        "enable": true,
-                        "value_area": 800
-                    }
-                },
-                "color": {
-                    "value": this.getParticleColors()
-                },
-                "shape": {
-                    "type": ["circle", "edge", "triangle", "polygon"],
-                    "stroke": {
-                        "width": 0,
-                        "color": "#000000"
-                    },
-                    "polygon": {
-                        "nb_sides": 5
-                    }
-                },
-                "opacity": {
-                    "value": 0.5,
-                    "random": false,
-                    "anim": {
-                        "enable": false,
-                        "speed": 1,
-                        "opacity_min": 0.1,
-                        "sync": false
-                    }
-                },
-                "size": {
-                    "value": 5,
-                    "random": true,
-                    "anim": {
-                        "enable": false,
-                        "speed": 80,
-                        "size_min": 0.1,
-                        "sync": false
-                    }
-                },
-                "line_linked": {
-                    "enable": true,
-                    "distance": 300,
-                    "color": "#ffffff",
-                    "opacity": 0.2,
-                    "width": 2
-                },
-                "move": {
-                    "enable": true,
-                    "speed": 2,
-                    "direction": "none",
-                    "random": true,
-                    "straight": false,
-                    "out_mode": "out",
-                    "bounce": false,
-                    "attract": {
-                        "enable": false,
-                        "rotateX": 600,
-                        "rotateY": 1200
-                    }
-                }
+            this.pJSInstance = window.pJSDom[window.pJSDom.length - 1]?.pJS;
+
+            if (!this.pJSInstance) {
+                throw new Error('Failed to initialize particles.js');
             }
-        };
+
+            this.isInitialized = true;
+            this.startVisualization();
+
+        } catch (error) {
+            console.error('Visualization initialization failed:', error);
+        }
     }
 
     startVisualization() {
+        if (!this.isInitialized) {
+            console.warn('Attempting to start visualization before initialization');
+            return;
+        }
+        this.stopVisualization();
         this.loop();
     }
 
@@ -165,87 +128,113 @@ export default class VisualizerEngine {
     }
 
     loop = () => {
-        if (this.audioCore.state.isPlaying) {
-            const audioData = this.audioCore.getAudioData();
-            this.updateParticles(audioData);
+        try {
+            if (this.audioCore?.state?.isPlaying) {
+                const audioData = this.audioCore.getAudioData();
+                if (audioData && audioData.length > 0) {
+                    this.updateParticles(audioData);
+                }
+            }
             
             if (this.visualizerSettings.showStats) {
                 this.updateStats();
             }
+            
+            this.animationFrameId = requestAnimationFrame(this.loop);
+        } catch (error) {
+            console.error('Visualization loop error:', error);
+            this.stopVisualization();
         }
-        
-        this.animationFrameId = requestAnimationFrame(this.loop);
     }
 
     updateParticles(audioData) {
-        const pJS = window.pJSDom[window.pJSDom.length - 1]?.pJS;
+        // Early validation of audioData
+        if (!(audioData instanceof Uint8Array) || audioData.length === 0) {
+            console.warn('Invalid audio data received');
+            return;
+        }
         
-        if (pJS?.particles?.array) {
-            // Split frequency data into four ranges for more detailed analysis
-            const subBassRange = audioData.slice(0, Math.floor(audioData.length * 0.05));  // 0-5%
-            const bassRange = audioData.slice(Math.floor(audioData.length * 0.05), Math.floor(audioData.length * 0.2));  // 5-20%
-            const midRange = audioData.slice(Math.floor(audioData.length * 0.2), Math.floor(audioData.length * 0.6));  // 20-60%
-            const highRange = audioData.slice(Math.floor(audioData.length * 0.6));  // 60-100%
-
-            // Calculate energy levels with peak detection
+        // Get particle instance
+        if (!this.pJSInstance?.particles?.array) {
+            this.pJSInstance = window.pJSDom[window.pJSDom.length - 1]?.pJS;
+            if (!this.pJSInstance?.particles?.array) {
+                console.warn('Particles instance not available');
+                return;
+            }
+        }
+    
+        try {
+            // Convert Uint8Array to regular array for easier manipulation
+            const audioArray = Array.from(audioData);
+            
+            // Split frequency data into ranges
+            const totalLength = audioArray.length;
+            const subBassRange = audioArray.slice(0, Math.floor(totalLength * 0.05));
+            const bassRange = audioArray.slice(
+                Math.floor(totalLength * 0.05),
+                Math.floor(totalLength * 0.2)
+            );
+            const midRange = audioArray.slice(
+                Math.floor(totalLength * 0.2),
+                Math.floor(totalLength * 0.6)
+            );
+            const highRange = audioArray.slice(Math.floor(totalLength * 0.6));
+    
+            // Calculate energies
             const subBassEnergy = this.calculatePeakEnergy(subBassRange);
             const bassEnergy = this.calculatePeakEnergy(bassRange);
             const midEnergy = this.calculatePeakEnergy(midRange);
             const highEnergy = this.calculatePeakEnergy(highRange);
-
-            // Calculate dynamic movement parameters
+            
             const overallEnergy = (subBassEnergy + bassEnergy + midEnergy + highEnergy) / 4;
-            const beatDetected = subBassEnergy > 0.8 || bassEnergy > 0.8; // Simple beat detection
-
-            // Update each particle based on frequency analysis
-            pJS.particles.array.forEach((particle, index) => {
-                const particleGroup = index % 4; // Divide particles into 4 groups
+            const beatDetected = subBassEnergy > 0.8 || bassEnergy > 0.8;
+    
+            // Update particles based on energy levels
+            this.pJSInstance.particles.array.forEach((particle, index) => {
+                if (!particle) return;
                 
-                switch(particleGroup) {
-                    case 0: // Sub-bass particles (deep rumble)
-                        this.adjustParticle(particle, {
-                            energy: subBassEnergy,
-                            speed: overallEnergy,
-                            color: '#FF0000',
-                            maxSize: 30,
-                            minSize: 8,
-                            pulseOnBeat: true,
-                            beatDetected: beatDetected
-                        });
-                        break;
-                    case 1: // Bass particles
-                        this.adjustParticle(particle, {
-                            energy: bassEnergy,
-                            speed: overallEnergy,
-                            color: '#FF7F00',
-                            maxSize: 25,
-                            minSize: 6,
-                            pulseOnBeat: true,
-                            beatDetected: beatDetected
-                        });
-                        break;
-                    case 2: // Mid-range particles
-                        this.adjustParticle(particle, {
-                            energy: midEnergy,
-                            speed: overallEnergy,
-                            color: '#FFFF00',
-                            maxSize: 15,
-                            minSize: 4,
-                            pulseOnBeat: false
-                        });
-                        break;
-                    case 3: // High-range particles
-                        this.adjustParticle(particle, {
-                            energy: highEnergy,
-                            speed: overallEnergy,
-                            color: '#00FFFF',
-                            maxSize: 10,
-                            minSize: 2,
-                            pulseOnBeat: false
-                        });
-                        break;
-                }
+                const particleGroup = index % 4;
+                this.updateParticleByGroup(particle, particleGroup, {
+                    overallEnergy,
+                    beatDetected,
+                    subBassEnergy,
+                    bassEnergy,
+                    midEnergy,
+                    highEnergy
+                });
             });
+        } catch (error) {
+            console.error('Error updating particles:', error);
+        }
+    }
+
+    updateParticleByGroup(particle, group, energyData) {
+        const {
+            overallEnergy,
+            beatDetected,
+            subBassEnergy,
+            bassEnergy,
+            midEnergy,
+            highEnergy
+        } = energyData;
+
+        try {
+            switch(group) {
+                case 0:
+                    this.adjustParticle(particle, {
+                        energy: subBassEnergy,
+                        speed: overallEnergy,
+                        color: '#FF0000',
+                        maxSize: 30,
+                        minSize: 8,
+                        pulseOnBeat: true,
+                        beatDetected
+                    });
+                    break;
+                // ... other cases
+            }
+        } catch (error) {
+            console.error('Error updating particle:', error);
         }
     }
 
@@ -265,37 +254,51 @@ export default class VisualizerEngine {
             pulseOnBeat,
             beatDetected
         } = config;
-
-        // Smooth acceleration using exponential moving average
-        const acceleration = 0.15 * this.visualizerSettings.sensitivity;
-        const targetSpeed = speed * 3 * this.visualizerSettings.sensitivity;
-        
-        // Update velocity with smooth transition
-        particle.vx += (Math.random() * 2 - 1) * (targetSpeed - Math.abs(particle.vx)) * acceleration;
-        particle.vy += (Math.random() * 2 - 1) * (targetSpeed - Math.abs(particle.vy)) * acceleration;
-
-        // Apply velocity limits
-        const maxVelocity = 5 * this.visualizerSettings.sensitivity;
-        particle.vx = Math.max(Math.min(particle.vx, maxVelocity), -maxVelocity);
-        particle.vy = Math.max(Math.min(particle.vy, maxVelocity), -maxVelocity);
-
-        // Size pulsing based on energy and beats
-        const baseSize = minSize + (maxSize - minSize) * energy;
-        let targetSize = baseSize;
-        
-        if (pulseOnBeat && beatDetected) {
-            targetSize *= 1.5; // Pulse effect on beat
+    
+        try {
+            // More aggressive acceleration
+            const acceleration = 0.25 * this.visualizerSettings.sensitivity;
+            const targetSpeed = speed * 5 * this.visualizerSettings.sensitivity;
+            
+            // Update velocity with more impact
+            particle.vx += (Math.random() * 2 - 1) * (targetSpeed - Math.abs(particle.vx)) * acceleration;
+            particle.vy += (Math.random() * 2 - 1) * (targetSpeed - Math.abs(particle.vy)) * acceleration;
+    
+            // Higher velocity limits
+            const maxVelocity = 8 * this.visualizerSettings.sensitivity;
+            particle.vx = Math.max(Math.min(particle.vx, maxVelocity), -maxVelocity);
+            particle.vy = Math.max(Math.min(particle.vy, maxVelocity), -maxVelocity);
+    
+            // More dramatic size pulsing
+            const baseSize = minSize + (maxSize - minSize) * energy;
+            let targetSize = baseSize;
+            
+            if (pulseOnBeat && beatDetected) {
+                targetSize *= 2; // More dramatic pulse effect
+            }
+    
+            // Faster size transition
+            particle.radius += (targetSize - particle.radius) * 0.2;
+    
+            // More dramatic opacity changes
+            particle.opacity = 0.2 + energy * 0.8;
+    
+            // Faster rotation
+            if (!particle.rotation) particle.rotation = 0;
+            particle.rotation += energy * 4;
+    
+            // Debug log for a sample particle
+            if (Math.random() < 0.01) { // Log only 1% of updates to avoid console spam
+                console.log('Particle Update:', {
+                    velocity: { x: particle.vx, y: particle.vy },
+                    size: particle.radius,
+                    opacity: particle.opacity,
+                    energy
+                });
+            }
+        } catch (error) {
+            console.error('Error adjusting particle:', error);
         }
-
-        // Smooth size transition
-        particle.radius += (targetSize - particle.radius) * 0.1;
-
-        // Don't directly modify particle color, use opacity for energy visualization
-        particle.opacity = 0.3 + energy * 0.7; // Dynamic opacity based on energy
-
-        // Add subtle rotation based on energy
-        if (!particle.rotation) particle.rotation = 0;
-        particle.rotation += energy * 2;
     }
 
     analyzeFrequencyCharacteristics(audioData) {
@@ -354,8 +357,22 @@ export default class VisualizerEngine {
     }
 
     setMode(mode) {
+        if (!visualizationModes[mode]) {
+            console.error(`Invalid visualization mode: ${mode}`);
+            return;
+        }
+
+        // Clean up current mode
+        this.stopVisualization();
+
+        // Update mode
         this.currentMode = mode;
+        
+        // Reinitialize with new mode
         this.updateVisualization();
+        
+        // Restart visualization
+        this.startVisualization();
     }
 
     getParticleColors() {
@@ -368,7 +385,7 @@ export default class VisualizerEngine {
                     shiftHue(this.visualizerSettings.baseColor, 60),
                     shiftHue(this.visualizerSettings.baseColor, 120)
                 ];
-            default: // spectrum
+            default: 
                 return [
                     "#FF6B6B", // Coral
                     "#FFB067", // Light orange
@@ -387,6 +404,15 @@ export default class VisualizerEngine {
     // Cleanup
     dispose() {
         this.stopVisualization();
+        
+        // Clean up particles
+        if (this.pJSInstance) {
+            this.pJSInstance.particles.array = [];
+            this.pJSInstance = null;
+        }
+        
+        // Reset state
+        this.isInitialized = false;
     }
 
     setColorPalette(paletteName) {

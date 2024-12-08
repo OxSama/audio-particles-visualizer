@@ -3,8 +3,21 @@ export default class AudioCore {
         // Initialize audio context with fallback
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.analyser = this.audioContext.createAnalyser();
-        this.analyser.fftSize = 2048;
+        this.analyser.fftSize = 2048; // Power of 2: 32, 64, 128, 256, 512, 1024, 2048
+        this.analyser.smoothingTimeConstant = 0.8; // Smooth changes: 0-1 (default 0.8)
+        this.analyser.minDecibels = -70; // Increase sensitivity
+        this.analyser.maxDecibels = -30; // Adjust peak response
     
+        // Create a persistent gain node
+        this.gainNode = this.audioContext.createGain();
+    
+        // Set up the audio graph in correct order
+        this.gainNode.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
+        
+        // Initialize frequency data array AFTER setting fftSize
+        this.data = new Uint8Array(this.analyser.frequencyBinCount);
+
         // Initialize audio source as null
         this.audioSource = null;
         
@@ -45,6 +58,8 @@ export default class AudioCore {
         // Frequency data array
         this.data = new Uint8Array(this.analyser.frequencyBinCount);
 
+        this.resumeContext();
+
         // Bind methods
         this.handleAudioEnd = this.handleAudioEnd.bind(this);
         this.handlePlay = this.handlePlay.bind(this);
@@ -56,6 +71,16 @@ export default class AudioCore {
 
         // Load saved volume settings
         this.loadSavedVolume();
+    }
+
+    async resumeContext() {
+        try {
+            if (this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+            }
+        } catch (error) {
+            console.error('Error resuming audio context:', error);
+        }
     }
 
     async loadFile(file) {
@@ -82,15 +107,15 @@ export default class AudioCore {
         }
     }
 
-    // Modified loadTrack to handle both URLs and files
     async loadTrack(trackIndex, autoPlay = true) {
-        // If there's an uploaded file, use that instead of playlist
-        if (this.playlist.currentFile) {
-            return await this.loadFile(this.playlist.currentFile);
-        }
-
-        // Otherwise use the playlist tracks
         try {
+            // Resume context first
+            await this.resumeContext();
+
+            if (this.playlist.currentFile) {
+                return await this.loadFile(this.playlist.currentFile);
+            }
+
             const response = await fetch(this.playlist.tracks[trackIndex]);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -108,35 +133,85 @@ export default class AudioCore {
         }
     }
 
+    getAudioData() {
+        if (!this.analyser) {
+            console.warn('Analyser not initialized');
+            return new Uint8Array();
+        }
+    
+        try {
+            // Clear previous data
+            this.data.fill(0);
+            
+            // Get new frequency data
+            this.analyser.getByteFrequencyData(this.data);
+            
+            // Verify we have data
+            const hasData = this.data.some(value => value > 0);
+            if (!hasData) {
+                console.log('No audio data detected');
+                return this.data;
+            }
+            
+            // Log data stats for debugging
+            const max = Math.max(...this.data);
+            const avg = this.data.reduce((sum, val) => sum + val, 0) / this.data.length;
+            console.log(`Audio Data - Max: ${max}, Avg: ${avg.toFixed(2)}`);
+            
+            return this.data;
+        } catch (error) {
+            console.error('Error getting audio data:', error);
+            return new Uint8Array();
+        }
+    }
+
     async handlePlay() {
-        if (this.audioContext.state === 'suspended') {
-            await this.audioContext.resume();
+        try {
+            await this.resumeContext();
+            
+            if (!this.buffer) {
+                console.log('Loading track...');
+                const loaded = await this.loadTrack(this.playlist.currentIndex);
+                if (!loaded) {
+                    console.error('Failed to load track');
+                    return;
+                }
+            }
+    
+            if (this.audioSource) {
+                this.audioSource.disconnect();
+            }
+    
+            // Create and configure source
+            this.audioSource = this.audioContext.createBufferSource();
+            this.audioSource.buffer = this.buffer;
+    
+            // Connect in correct order
+            this.audioSource.connect(this.gainNode);
+            // gainNode is already connected to analyser from constructor
+    
+            const offset = this.state.isPaused ? 
+                this.timing.pausedAt - this.timing.startTime : 0;
+    
+            this.audioSource.start(0, offset);
+            this.audioSource.onended = this.handleAudioEnd;
+    
+            // Set state
+            this.state.isPlaying = true;
+            this.state.isPaused = false;
+            this.timing.startTime = this.audioContext.currentTime - offset;
+    
+            // Update volume
+            this.updateVolume();
+            
+            console.log('Playback started, audio graph connected');
+        } catch (error) {
+            console.error('Error in handlePlay:', error);
         }
-
-        this.state.isStopped = false;
-
-        if (this.audioSource) {
-            this.audioSource.disconnect();
-        }
-
-        this.audioSource = this.audioContext.createBufferSource();
-        this.audioSource.buffer = this.buffer;
-        this.audioSource.connect(this.analyser);
-        this.analyser.connect(this.audioContext.destination);
-
-        const offset = this.state.isPaused ? 
-            this.timing.pausedAt - this.timing.startTime : 0;
-
-        this.audioSource.start(0, offset);
-        this.audioSource.onended = () => this.handleAudioEnd();
-
-        this.state.isPlaying = true;
-        this.state.isPaused = false;
-        this.timing.startTime = this.audioContext.currentTime - offset;
     }
 
     handlePause() {
-        if (this.state.isPlaying) {
+        if (this.state.isPlaying && this.audioSource) {
             this.audioSource.stop();
             this.state.isPlaying = false;
             this.state.isPaused = true;
@@ -145,11 +220,10 @@ export default class AudioCore {
     }
 
     handleStop() {
-        if (this.state.isPlaying || this.state.isPaused) {
-            if (this.audioSource) {
-                this.audioSource.stop();
-                this.audioSource = null;
-            }
+        if ((this.state.isPlaying || this.state.isPaused) && this.audioSource) {
+            this.audioSource.stop();
+            this.audioSource.disconnect();
+            this.audioSource = null;
 
             this.state.isPlaying = false;
             this.state.isPaused = false;
@@ -203,13 +277,8 @@ export default class AudioCore {
     }
 
     updateVolume() {
-        if (this.audioSource) {
-            const gainNode = this.audioContext.createGain();
-            gainNode.gain.value = this.audioControls.volume;
-            this.audioSource.disconnect();
-            this.audioSource.connect(gainNode);
-            gainNode.connect(this.analyser);
-            
+        if (this.gainNode) {
+            this.gainNode.gain.value = this.audioControls.volume;
             localStorage.setItem('audioVolume', this.audioControls.volume.toString());
         }
     }
@@ -231,9 +300,4 @@ export default class AudioCore {
         }
     }
 
-    // Method to get current audio data for visualizer
-    getAudioData() {
-        this.analyser.getByteFrequencyData(this.data);
-        return this.data;
-    }
 }
