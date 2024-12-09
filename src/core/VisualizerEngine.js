@@ -230,7 +230,53 @@ export default class VisualizerEngine {
             beatDetected,
           });
           break;
-        // ... other cases
+          case 1: // Bass frequency particles
+          this.adjustParticle(particle, {
+            energy: bassEnergy,
+            speed: overallEnergy * 1.2, // Slightly faster
+            color: "#FF6B00", // Orange for bass
+            maxSize: 25,
+            minSize: 6,
+            pulseOnBeat: true,
+            beatDetected,
+          });
+          break;
+  
+        case 2: // Mid frequency particles
+          this.adjustParticle(particle, {
+            energy: midEnergy,
+            speed: overallEnergy * 1.5, // Even faster
+            color: "#FFD700", // Gold for mids
+            maxSize: 20,
+            minSize: 4,
+            pulseOnBeat: false,
+            beatDetected,
+          });
+          break;
+  
+        case 3: // High frequency particles
+          this.adjustParticle(particle, {
+            energy: highEnergy,
+            speed: overallEnergy * 2, // Fastest
+            color: "#00FFFF", // Cyan for highs
+            maxSize: 15,
+            minSize: 2,
+            pulseOnBeat: false,
+            beatDetected,
+          });
+          break;
+  
+        default:
+          // Fallback for any unexpected cases
+          this.adjustParticle(particle, {
+            energy: overallEnergy,
+            speed: overallEnergy,
+            color: "#FFFFFF", // White for default
+            maxSize: 20,
+            minSize: 5,
+            pulseOnBeat: false,
+            beatDetected,
+          });
       }
     } catch (error) {
       console.error("Error updating particle:", error);
