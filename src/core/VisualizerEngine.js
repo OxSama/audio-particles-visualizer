@@ -316,7 +316,7 @@ export default class VisualizerEngine {
         acceleration;
 
       // Higher velocity limits
-      const maxVelocity = 8 * this.visualizerSettings.sensitivity;
+      const maxVelocity = 5 * this.visualizerSettings.sensitivity;
       particle.vx = Math.max(Math.min(particle.vx, maxVelocity), -maxVelocity);
       particle.vy = Math.max(Math.min(particle.vy, maxVelocity), -maxVelocity);
 
@@ -341,12 +341,12 @@ export default class VisualizerEngine {
       // Debug log for a sample particle
       if (Math.random() < 0.01) {
         // Log only 1% of updates to avoid console spam
-        console.log("Particle Update:", {
-          velocity: { x: particle.vx, y: particle.vy },
-          size: particle.radius,
-          opacity: particle.opacity,
-          energy,
-        });
+        // console.log("Particle Update:", {
+        //   velocity: { x: particle.vx, y: particle.vy },
+        //   size: particle.radius,
+        //   opacity: particle.opacity,
+        //   energy,
+        // });
       }
     } catch (error) {
       console.error("Error adjusting particle:", error);
@@ -381,11 +381,18 @@ export default class VisualizerEngine {
   }
 
   updateVisualization() {
-    const config = getModeConfig(this.currentMode);
-
-    const updatedConfig = this.applyCurrentSettings(config);
-
-    particlesJS("particles-js", updatedConfig);
+    if (!this.pJSInstance) {
+      // Only perform full initialization if no instance exists
+      const config = getModeConfig(this.currentMode);
+      const updatedConfig = this.applyCurrentSettings(config);
+      particlesJS("particles-js", updatedConfig);
+      this.pJSInstance = window.pJSDom[window.pJSDom.length - 1]?.pJS;
+    } else {
+      // Otherwise use the gentler update method
+      const config = getModeConfig(this.currentMode);
+      const updatedConfig = this.applyCurrentSettings(config);
+      this.updateParticleSystem(updatedConfig);
+    }
   }
 
   applyCurrentSettings(config) {
@@ -418,18 +425,75 @@ export default class VisualizerEngine {
       console.error(`Invalid visualization mode: ${mode}`);
       return;
     }
+  
+    try {
+      // Store current state
+      const wasPlaying = this.audioCore?.state?.isPlaying;
+      
+      // Don't stop visualization, just pause the update loop
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+  
+      // Update mode
+      this.currentMode = mode;
+      this.currentModeConfig = this.modeDefaults[mode].config;
+  
+      // Update particle system without full reinitialization
+      if (this.pJSInstance) {
+        const config = getModeConfig(mode);
+        const updatedConfig = this.applyCurrentSettings(config);
+        
+        // Update only necessary properties instead of full reinitialization
+        this.updateParticleSystem(updatedConfig);
+      }
+  
+      // Restart animation loop if it was playing
+      if (wasPlaying) {
+        this.loop();
+      }
+  
+      console.log(`Mode switched to: ${mode}`);
+      return true;
+    } catch (error) {
+      console.error('Error switching visualization mode:', error);
+      return false;
+    }
+  }
 
-    // Clean up current mode
-    this.stopVisualization();
-
-    // Update mode
-    this.currentMode = mode;
-
-    // Reinitialize with new mode
-    this.updateVisualization();
-
-    // Restart visualization
-    this.startVisualization();
+  updateParticleSystem(config) {
+    if (!this.pJSInstance) return;
+  
+    const pJS = this.pJSInstance;
+  
+    // Update particle movement properties
+    pJS.particles.move = {
+      ...pJS.particles.move,
+      ...config.particles.move
+    };
+  
+    // Update particle appearance
+    pJS.particles.color = config.particles.color;
+    pJS.particles.shape = config.particles.shape;
+    pJS.particles.opacity = config.particles.opacity;
+    pJS.particles.size = config.particles.size;
+  
+    // Update particle count if different
+    if (pJS.particles.number.value !== config.particles.number.value) {
+      pJS.particles.number.value = config.particles.number.value;
+      pJS.particles.array = [];
+      pJS.fn.particlesCreate();
+    }
+  
+    // Update interaction settings
+    pJS.interactivity = {
+      ...pJS.interactivity,
+      ...config.interactivity
+    };
+  
+    // Force particle refresh without full reinitialization
+    pJS.fn.particlesRefresh();
   }
 
   getParticleColors() {
